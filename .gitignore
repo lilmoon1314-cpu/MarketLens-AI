@@ -1,0 +1,36 @@
+# Environments, downloaded dependencies, and build artifacts
+.venv/
+.uv-cache/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Development artifacts
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.idea/
+.vscode/
+
+# Credentials, browser sessions, uploads, reports, and model weights
+.env
+.env.*
+!.env.example
+.local/
+.playwright/
+playwright/.auth/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.safetensors
+*.pt
+*.pth
+
+# OS files
+.DS_Store
+Thumbs.db

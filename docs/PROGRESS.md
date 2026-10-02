@@ -8,7 +8,7 @@
 - 本地基线：Python3.12、uv锁文件、src布局、pytest/Ruff、基础CI；Git main已初始化。
 - 远端目标：`https://github.com/lilmoon1314-cpu/MarketLens-AI.git`。
 - 远端核实：GitHub连接器确认空仓库、默认main、具有push权限；扩展网络Git只读连接成功。
-- 推送状态：F00提交待推送，推送后验证远端SHA并补充交付记录。
+- 推送状态：F00已发布到main，实际功能提交为768ac89d42fdfcc343de305801eb3a5da455773c；本地已对齐并追踪origin/main。
 
 ## D02 — 评论渠道改为淘宝
 
@@ -19,15 +19,18 @@
 
 ## F00 — 项目开发环境
 
-- 日期：2026-10-02；状态：本地完成，提交/远端验证待执行。
+- 日期：2026-10-02；状态：完成，已提交并发布远端，Windows/Ubuntu CI通过。
 - 退出标准：可复现安装、可编辑包导入、离线pytest、Ruff、wheel/sdist打包、基础CI配置；无业务功能越界。
 - 交付：pyproject.toml、uv.lock、Python版本约束、src包、环境检查测试、README/.env.example/.gitignore、Windows/Linux GitHub Actions。
 - 依赖：基础仅Pydantic；workflow/llm/nlp/ui/collector为可选extras；dev使用标准dependency group。锁定126个含可选依赖的包，本轮安装13个基础/开发包，没有安装可选NLP/UI/浏览器，也未下载模型权重。
 - 测试：`uv run --locked pytest -q`：2 passed；`uv run --locked ruff check .`与`ruff format --check .`通过；`uv lock --check --offline`通过。
 - 打包：`uv build --no-sources`生成wheel和sdist；wheel在独立环境离线安装并用隔离模式导入成功；归档检查确认没有运行数据/缓存/实际凭据。
 - 忽略验证：.venv、.uv-cache、.local淘宝profile、.env、dist均被Git忽略；.env.example仅为无密钥配置模板。
-- CI：已配置Ubuntu/Windows两平台；远端实际运行结果在推送后核实，不以本地通过替代。
-- 提交：本提交包含F00及用户授权的渠道文档变更，实际SHA在推送后交付记录登记。
+- CI：Ubuntu与Windows作业均success，运行链接：https://github.com/lilmoon1314-cpu/MarketLens-AI/actions/runs/36995046559。
+- 提交：768ac89d42fdfcc343de305801eb3a5da455773c，`feat(F00): bootstrap development environment and plan Taobao collection`；包含F00及用户授权的渠道文档变更。
+- 发布方式：HTTPS Git连接失败，现有SSH身份无该仓库写权限、CLI token仅可读；使用已授权的Codex GitHub连接器创建Git对象并非强制更新main。全部14个文件blob及最终tree与本地逐项核对一致。
+- 历史：远端先以8518819初始化.gitignore，再发布F00；原未发布本地root提交b933897保存在local/f00-before-api，主分支对齐真实远端历史，无远端force push。
+- 进度同步：本次仅追加完成记录的文档提交；其最终SHA在交付回复提供，不继续为记录自身SHA追加提交。
 - 下一任务：F01数据与Agent契约；本轮停止在F00，不自动实施F01。
 
 ## D01 — 开发计划与技术设计

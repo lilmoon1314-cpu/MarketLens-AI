@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "AnalysisRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "product": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Product",
+          "type": "string"
+        },
+        "goal": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Goal",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "enum": [
+              "local",
+              "taobao"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "dataset_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Dataset Id"
+        },
+        "product_urls": {
+          "items": {
+            "format": "uri",
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Product Urls",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "max_reviews": {
+          "maximum": 1000,
+          "minimum": 1,
+          "title": "Max Reviews",
+          "type": "integer"
+        },
+        "report_language": {
+          "enum": [
+            "zh-CN",
+            "en"
+          ],
+          "title": "Report Language",
+          "type": "string"
+        }
+      },
+      "required": [
+        "product",
+        "goal",
+        "sources",
+        "dataset_id",
+        "product_urls",
+        "max_reviews",
+        "report_language"
+      ],
+      "title": "AnalysisRequest",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "request": {
+      "$ref": "#/$defs/AnalysisRequest"
+    },
+    "available_sources": {
+      "items": {
+        "enum": [
+          "local",
+          "taobao"
+        ],
+        "type": "string"
+      },
+      "title": "Available Sources",
+      "type": "array",
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "request",
+    "available_sources"
+  ],
+  "title": "PlannerInput",
+  "type": "object"
+}

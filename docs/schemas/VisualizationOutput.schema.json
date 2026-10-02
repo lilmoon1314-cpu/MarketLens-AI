@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "ChartSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "chart": {
+          "enum": [
+            "bar",
+            "donut"
+          ],
+          "title": "Chart",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "dataset": {
+          "enum": [
+            "sentiment_distribution",
+            "topic_distribution",
+            "feedback_value_distribution",
+            "insight_evidence_counts"
+          ],
+          "title": "Dataset",
+          "type": "string"
+        },
+        "x": {
+          "const": "label",
+          "title": "X",
+          "type": "string"
+        },
+        "y": {
+          "const": "count",
+          "title": "Y",
+          "type": "string"
+        }
+      },
+      "required": [
+        "chart",
+        "title",
+        "dataset",
+        "x",
+        "y"
+      ],
+      "title": "ChartSpec",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "charts": {
+      "items": {
+        "$ref": "#/$defs/ChartSpec"
+      },
+      "maxItems": 4,
+      "minItems": 1,
+      "title": "Charts",
+      "type": "array"
+    }
+  },
+  "required": [
+    "charts"
+  ],
+  "title": "VisualizationOutput",
+  "type": "object"
+}

@@ -1,0 +1,288 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "AnnotatedReview": {
+      "additionalProperties": false,
+      "properties": {
+        "review": {
+          "$ref": "#/$defs/Review"
+        },
+        "semantic": {
+          "$ref": "#/$defs/SemanticReview"
+        }
+      },
+      "required": [
+        "review",
+        "semantic"
+      ],
+      "title": "AnnotatedReview",
+      "type": "object"
+    },
+    "Confidence": {
+      "additionalProperties": false,
+      "properties": {
+        "sentiment": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sentiment"
+        },
+        "feedback_value": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Feedback Value"
+        },
+        "topics": {
+          "additionalProperties": {
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "propertyNames": {
+            "enum": [
+              "pricing",
+              "performance",
+              "reliability",
+              "usability",
+              "features",
+              "support",
+              "quality",
+              "delivery",
+              "packaging",
+              "other"
+            ]
+          },
+          "title": "Topics",
+          "type": "object"
+        }
+      },
+      "required": [
+        "sentiment",
+        "feedback_value",
+        "topics"
+      ],
+      "title": "Confidence",
+      "type": "object"
+    },
+    "Review": {
+      "additionalProperties": false,
+      "properties": {
+        "review_id": {
+          "minLength": 1,
+          "title": "Review Id",
+          "type": "string"
+        },
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "local",
+            "taobao"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "source_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Id"
+        },
+        "product_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Product Id"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Url"
+        },
+        "time": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Time"
+        }
+      },
+      "required": [
+        "review_id",
+        "text",
+        "source",
+        "source_id",
+        "product_id",
+        "url",
+        "time"
+      ],
+      "title": "Review",
+      "type": "object"
+    },
+    "SemanticReview": {
+      "additionalProperties": false,
+      "properties": {
+        "review_id": {
+          "minLength": 1,
+          "title": "Review Id",
+          "type": "string"
+        },
+        "sentiment": {
+          "enum": [
+            "positive",
+            "negative",
+            "neutral",
+            "mixed",
+            "unknown"
+          ],
+          "title": "Sentiment",
+          "type": "string"
+        },
+        "topics": {
+          "items": {
+            "enum": [
+              "pricing",
+              "performance",
+              "reliability",
+              "usability",
+              "features",
+              "support",
+              "quality",
+              "delivery",
+              "packaging",
+              "other"
+            ],
+            "type": "string"
+          },
+          "title": "Topics",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "feedback_value": {
+          "enum": [
+            "actionable",
+            "non_actionable",
+            "spam",
+            "unknown"
+          ],
+          "title": "Feedback Value",
+          "type": "string"
+        },
+        "confidence": {
+          "$ref": "#/$defs/Confidence"
+        },
+        "processed": {
+          "title": "Processed",
+          "type": "boolean"
+        },
+        "truncated": {
+          "title": "Truncated",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "review_id",
+        "sentiment",
+        "topics",
+        "feedback_value",
+        "confidence",
+        "processed",
+        "truncated"
+      ],
+      "title": "SemanticReview",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "product": {
+      "minLength": 1,
+      "title": "Product",
+      "type": "string"
+    },
+    "goal": {
+      "minLength": 1,
+      "title": "Goal",
+      "type": "string"
+    },
+    "dimensions": {
+      "items": {
+        "enum": [
+          "strength",
+          "weakness",
+          "pain_point",
+          "feature_request"
+        ],
+        "type": "string"
+      },
+      "title": "Dimensions",
+      "type": "array",
+      "uniqueItems": true
+    },
+    "report_language": {
+      "enum": [
+        "zh-CN",
+        "en"
+      ],
+      "title": "Report Language",
+      "type": "string"
+    },
+    "reviews": {
+      "items": {
+        "$ref": "#/$defs/AnnotatedReview"
+      },
+      "minItems": 1,
+      "title": "Reviews",
+      "type": "array"
+    }
+  },
+  "required": [
+    "product",
+    "goal",
+    "dimensions",
+    "report_language",
+    "reviews"
+  ],
+  "title": "AnalystInput",
+  "type": "object"
+}

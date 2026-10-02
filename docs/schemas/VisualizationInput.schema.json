@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "MetricDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "dataset": {
+          "enum": [
+            "sentiment_distribution",
+            "topic_distribution",
+            "feedback_value_distribution",
+            "insight_evidence_counts"
+          ],
+          "title": "Dataset",
+          "type": "string"
+        },
+        "label_field": {
+          "const": "label",
+          "title": "Label Field",
+          "type": "string"
+        },
+        "value_field": {
+          "const": "count",
+          "title": "Value Field",
+          "type": "string"
+        }
+      },
+      "required": [
+        "dataset",
+        "label_field",
+        "value_field"
+      ],
+      "title": "MetricDescriptor",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "product": {
+      "title": "Product",
+      "type": "string"
+    },
+    "report_language": {
+      "enum": [
+        "zh-CN",
+        "en"
+      ],
+      "title": "Report Language",
+      "type": "string"
+    },
+    "available_metrics": {
+      "items": {
+        "$ref": "#/$defs/MetricDescriptor"
+      },
+      "title": "Available Metrics",
+      "type": "array"
+    },
+    "insight_titles": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Insight Titles",
+      "type": "array"
+    }
+  },
+  "required": [
+    "product",
+    "report_language",
+    "available_metrics",
+    "insight_titles"
+  ],
+  "title": "VisualizationInput",
+  "type": "object"
+}

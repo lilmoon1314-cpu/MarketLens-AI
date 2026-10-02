@@ -2,7 +2,7 @@
 
 中文优先的商品用户反馈分析项目，计划使用 LangGraph、GLiNER2、多阶段 LLM 分析与 Streamlit 展示淘宝商品评论中的问题和需求。
 
-目前已实现 **F00：开发环境与项目骨架**。尚无评论采集、分析命令或 Dashboard；这些功能按开发计划逐项实现。
+目前已实现 **F00：开发环境与项目骨架**、**F01：数据与 Agent 契约**。尚无评论采集、分析命令或 Dashboard；这些功能按开发计划逐项实现。
 
 ## 本地开发
 
@@ -17,6 +17,19 @@ uv build --no-sources
 ```
 
 `uv sync` 创建独立的 `.venv`，安装已锁定的项目和开发依赖；测试默认不访问外部服务、不下载模型。CI 在 Windows 和 Linux 上执行同样的检查，并验证打包。
+
+## 数据与 Agent 契约
+
+公开类型位于 `marketlens.contracts`，包括 `AnalysisRequest`、`Review`、`SemanticReview`、三个 Agent 的输入输出及 `AnalysisState`。对象禁止额外字段，不隐式转换字符串数字；可空来源字段也必须显式提供。时间采用 UTC，未知值填 `null`；Python 调用传入带时区的 `datetime`，JSON 调用使用 `model_validate_json()` 解析 RFC3339 日期。
+
+六个 Agent 入口及共享定义导出到 `docs/schemas/`，由 Pydantic 自动生成：
+
+```powershell
+uv run --locked python -m marketlens.contracts.export
+uv run --locked pytest tests/unit/test_contracts.py -q
+```
+
+修改类型后重新导出并提交 Schema；测试检查导出文件一致性、Draft 2020-12 合法性与内部引用。Pydantic 额外检查非空白文本、UTC、来源必需输入、评论/标注 ID 匹配和主题图表限制。Schema 不执行这些跨字段或上下文规则；证据白名单、来源授权、商品主机/短链解析、数据集存在性及预算由后续对应服务验证。当前 URL 校验仅保证 HTTP(S) 格式，不授权采集。
 
 ## 可选依赖
 

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "sources": {
+      "items": {
+        "enum": [
+          "local",
+          "taobao"
+        ],
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Sources",
+      "type": "array",
+      "uniqueItems": true
+    },
+    "keywords": {
+      "items": {
+        "maxLength": 100,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Keywords",
+      "type": "array",
+      "uniqueItems": true
+    },
+    "dimensions": {
+      "items": {
+        "enum": [
+          "strength",
+          "weakness",
+          "pain_point",
+          "feature_request"
+        ],
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Dimensions",
+      "type": "array",
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "sources",
+    "keywords",
+    "dimensions"
+  ],
+  "title": "PlannerOutput",
+  "type": "object"
+}

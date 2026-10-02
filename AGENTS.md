@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-MarketLens AI is a Chinese-first product feedback analysis project. `MarketLens_AI_PRD_v0.1.md` contains the v0.2 PRD; its original filename is retained. The implemented baseline is F00: package scaffolding and development checks. Taobao collection and analysis remain planned.
+MarketLens AI is a Chinese-first product feedback analysis project. `MarketLens_AI_PRD_v0.1.md` contains the v0.2 PRD; its original filename is retained. F00 provides development checks; F01 adds contracts and generated schemas. Taobao collection and analysis remain planned.
 
 Python modules live under `src/marketlens/`, automated tests under `tests/`, and design/progress documents under `docs/`. Keep future collection, NLP filtering, orchestration, and visualization separate. Use sanitized fixtures under `tests/fixtures/`; runtime data and browser sessions belong in ignored `.local/`.
 
@@ -21,6 +21,8 @@ Install optional `workflow`, `llm`, `nlp`, `ui`, or `collector` extras only as n
 ## Coding Style & Naming Conventions
 
 Use four-space indentation, `snake_case` functions/modules, and `PascalCase` classes. Add type hints to public interfaces. Ruff enforces formatting and selected lint rules with a 100-character line length. Keep agent schemas explicit and insights linked to evidence.
+
+Maintain types in `src/marketlens/contracts/`; regenerate `docs/schemas/` with `uv run --locked python -m marketlens.contracts.export` after contract changes. Do not hand-edit generated schemas.
 
 ## Testing Guidelines
 

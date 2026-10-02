@@ -1,6 +1,6 @@
 # MarketLens AI — Tech Design Spec
 
-日期：2026-10-02。状态：业务设计；F00开发环境已完成本地验证，后续业务尚未实现。依据：`MarketLens_AI_PRD_v0.1.md` **正文 v0.2**；保留原文件，不以文件名判断版本。
+日期：2026-10-02。状态：F00开发环境、F01数据与Agent契约已实现，后续业务尚未实现。依据：`MarketLens_AI_PRD_v0.1.md` **正文 v0.2**；保留原文件，不以文件名判断版本。
 
 ## 1. 目标、边界与已确认默认值
 
@@ -39,6 +39,8 @@ flowchart TD
 
 以下是设计级类型声明，不是本轮实现代码。所有业务对象以可 JSON 序列化的 dict 存储；model/client/tokenizer、密钥、文件句柄通过 `context_schema` 注入，不进入持久化 State。
 
+F01已在 `src/marketlens/contracts/state.py` 落地同名TypedDict；此轮仅声明状态类型，F03才安装LangGraph并实现节点更新与运行时Context。
+
 ```python
 class AnalysisState(TypedDict):
     schema_version: str                 # "1.0"
@@ -71,6 +73,8 @@ State 字段默认覆盖，不为 reviews/annotations 配置 append reducer，�
 ## 4. Agent 输入输出 JSON Schema
 
 使用 JSON Schema Draft 2020-12；下面 `$defs` 构成一个共享 Schema 文档，输入/输出入口是 `#/$defs/PlannerInput` 等。实现时用 Pydantic 作为唯一类型来源并导出 Schema，避免维护两套契约。LLM provider 的结构化输出能力由适配器探测，不直接将带复杂引用的 schema 强行发送给所有兼容服务。
+
+F01已实现：类型来源为 `contracts/models.py`；可执行Schema以 `docs/schemas/` 自动导出文件为准，下文为设计示例。共享bundle含14个定义（新增命名的Confidence和AnnotatedReview），六个独立入口文件可单独解析。JSON Schema描述形状；非空白、UTC、local/taobao必需输入、评论/标注ID一致、批次ID唯一及topic图表限制由Pydantic额外验证。HTTP(S)格式不代表可采集授权；商品主机/ID/短链接解析在F13实现，来源交集、证据白名单和运行数据集校验分别在F08/F09/F10实现。最终报告的强类型在统计与持久化阶段补齐，本轮不猜测未落地的数据结构。
 
 通用约束：所有对象禁止额外字段；缺失值用 null；日期 RFC3339 UTC。Schema 负责形状，程序负责 ID 存在性、预算、计数、跨字段关系和引用真伪。
 

@@ -3,12 +3,26 @@
 ## 当前状态
 
 - 日期：2026-10-02。
-- 阶段：F00开发环境与项目骨架完成，本地验证通过；业务功能尚未实现。
+- 阶段：F00开发环境与项目骨架、F01数据与Agent契约完成；采集/模型/工作流尚未实现。
 - PRD基线：`MarketLens_AI_PRD_v0.1.md`正文v0.2。
 - 本地基线：Python3.12、uv锁文件、src布局、pytest/Ruff、基础CI；Git main已初始化。
 - 远端目标：`https://github.com/lilmoon1314-cpu/MarketLens-AI.git`。
 - 远端核实：GitHub连接器确认空仓库、默认main、具有push权限；扩展网络Git只读连接成功。
-- 推送状态：F00已发布到main，实际功能提交为768ac89d42fdfcc343de305801eb3a5da455773c；本地已对齐并追踪origin/main。
+- 推送状态：F00已发布，交付记录提交fbdd8863f51bcd344f73d753613439dc8ed66e9d；F01本地验证通过，本提交包含F01，提交时发布pending，最终SHA及远端验证在交付回复记录。
+
+## F01 — 数据与Agent契约
+
+- 日期：2026-10-02；状态：实现及本地验证完成；本提交包含该任务，发布pending。
+- 退出标准：Pydantic业务类型、六个Agent入口Schema、合法/非法输入及引用结构测试；只实施契约，不接入模型或采集。
+- 交付：`src/marketlens/contracts/`中的请求/评论/标注/洞察/图表及Agent类型、可序列化AnalysisState声明、Schema导出模块；`docs/schemas/`中六个独立入口和一个共享bundle（14个定义）。
+- 校验：禁止额外字段、严格JSON类型、长度/数量/评分范围、唯一数组、必需可空字段、UTC、来源所需输入、评论与标注ID匹配、批次评论ID唯一、主题仅bar图；空白文本不自动改写原文。
+- 测试：`uv run --locked --offline pytest -q`：53 passed（含原2项环境检查）；中文六契约JSON往返、Draft202012元校验/样例校验、全部内部引用、导出文件字节一致、错误字段/评分/日期/ID均通过。
+- 质量：`uv run --locked --offline ruff check .`与`ruff format --check .`通过；`uv lock --check --offline`通过；`uv build --no-sources --offline`成功生成wheel/sdist。
+- 依赖：jsonschema加入dev组，复用已锁版本；生产依赖保持Pydantic，未安装LangGraph/GLiNER2/浏览器，未触发外部服务。锁文件只添加dev组声明，保留其他解析结果。
+- 文档：README记录导出/校验用法；贡献指南、设计状态和开发计划同步。未知日期/来源为null，不提交个人数据；本轮无前端，截图不适用。
+- 边界：Schema通过不表示证据真实或URL可抓；商品URL主机/短链/ID验证F13、来源交集F08、证据白名单F09、数据集存在F10、最终报告强类型随统计/持久化补齐。State只是TypedDict声明，尚无LangGraph运行逻辑。
+- 交付：基于main正常追加，不改写历史；使用已授权GitHub连接器发布并核对本地tree，最终SHA/CI结果在交付回复提供。
+- 下一任务：F02本地评论导入（CSV/JSONL、规范化、稳定ID/去重）；本轮停止在F01。
 
 ## D02 — 评论渠道改为淘宝
 

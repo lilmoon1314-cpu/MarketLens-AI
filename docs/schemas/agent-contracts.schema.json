@@ -1,0 +1,675 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:marketlens:agent-contracts:1.0",
+  "$defs": {
+    "AnalysisRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "product": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Product",
+          "type": "string"
+        },
+        "goal": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Goal",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "enum": [
+              "local",
+              "taobao"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "dataset_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Dataset Id"
+        },
+        "product_urls": {
+          "items": {
+            "format": "uri",
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Product Urls",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "max_reviews": {
+          "maximum": 1000,
+          "minimum": 1,
+          "title": "Max Reviews",
+          "type": "integer"
+        },
+        "report_language": {
+          "enum": [
+            "zh-CN",
+            "en"
+          ],
+          "title": "Report Language",
+          "type": "string"
+        }
+      },
+      "required": [
+        "product",
+        "goal",
+        "sources",
+        "dataset_id",
+        "product_urls",
+        "max_reviews",
+        "report_language"
+      ],
+      "title": "AnalysisRequest",
+      "type": "object"
+    },
+    "AnalystInput": {
+      "additionalProperties": false,
+      "properties": {
+        "product": {
+          "minLength": 1,
+          "title": "Product",
+          "type": "string"
+        },
+        "goal": {
+          "minLength": 1,
+          "title": "Goal",
+          "type": "string"
+        },
+        "dimensions": {
+          "items": {
+            "enum": [
+              "strength",
+              "weakness",
+              "pain_point",
+              "feature_request"
+            ],
+            "type": "string"
+          },
+          "title": "Dimensions",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "report_language": {
+          "enum": [
+            "zh-CN",
+            "en"
+          ],
+          "title": "Report Language",
+          "type": "string"
+        },
+        "reviews": {
+          "items": {
+            "$ref": "#/$defs/AnnotatedReview"
+          },
+          "minItems": 1,
+          "title": "Reviews",
+          "type": "array"
+        }
+      },
+      "required": [
+        "product",
+        "goal",
+        "dimensions",
+        "report_language",
+        "reviews"
+      ],
+      "title": "AnalystInput",
+      "type": "object"
+    },
+    "AnalystOutput": {
+      "additionalProperties": false,
+      "properties": {
+        "summary": {
+          "maxLength": 4000,
+          "title": "Summary",
+          "type": "string"
+        },
+        "insights": {
+          "items": {
+            "$ref": "#/$defs/Insight"
+          },
+          "maxItems": 20,
+          "title": "Insights",
+          "type": "array"
+        },
+        "limitations": {
+          "items": {
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "summary",
+        "insights",
+        "limitations"
+      ],
+      "title": "AnalystOutput",
+      "type": "object"
+    },
+    "AnnotatedReview": {
+      "additionalProperties": false,
+      "properties": {
+        "review": {
+          "$ref": "#/$defs/Review"
+        },
+        "semantic": {
+          "$ref": "#/$defs/SemanticReview"
+        }
+      },
+      "required": [
+        "review",
+        "semantic"
+      ],
+      "title": "AnnotatedReview",
+      "type": "object"
+    },
+    "ChartSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "chart": {
+          "enum": [
+            "bar",
+            "donut"
+          ],
+          "title": "Chart",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "dataset": {
+          "enum": [
+            "sentiment_distribution",
+            "topic_distribution",
+            "feedback_value_distribution",
+            "insight_evidence_counts"
+          ],
+          "title": "Dataset",
+          "type": "string"
+        },
+        "x": {
+          "const": "label",
+          "title": "X",
+          "type": "string"
+        },
+        "y": {
+          "const": "count",
+          "title": "Y",
+          "type": "string"
+        }
+      },
+      "required": [
+        "chart",
+        "title",
+        "dataset",
+        "x",
+        "y"
+      ],
+      "title": "ChartSpec",
+      "type": "object"
+    },
+    "Confidence": {
+      "additionalProperties": false,
+      "properties": {
+        "sentiment": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sentiment"
+        },
+        "feedback_value": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Feedback Value"
+        },
+        "topics": {
+          "additionalProperties": {
+            "maximum": 1,
+            "minimum": 0,
+            "type": "number"
+          },
+          "propertyNames": {
+            "enum": [
+              "pricing",
+              "performance",
+              "reliability",
+              "usability",
+              "features",
+              "support",
+              "quality",
+              "delivery",
+              "packaging",
+              "other"
+            ]
+          },
+          "title": "Topics",
+          "type": "object"
+        }
+      },
+      "required": [
+        "sentiment",
+        "feedback_value",
+        "topics"
+      ],
+      "title": "Confidence",
+      "type": "object"
+    },
+    "Insight": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "strength",
+            "weakness",
+            "pain_point",
+            "feature_request"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "summary": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evidence Ids",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "hypothesis": {
+          "anyOf": [
+            {
+              "maxLength": 1000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Hypothesis"
+        }
+      },
+      "required": [
+        "kind",
+        "title",
+        "summary",
+        "evidence_ids",
+        "hypothesis"
+      ],
+      "title": "Insight",
+      "type": "object"
+    },
+    "MetricDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "dataset": {
+          "enum": [
+            "sentiment_distribution",
+            "topic_distribution",
+            "feedback_value_distribution",
+            "insight_evidence_counts"
+          ],
+          "title": "Dataset",
+          "type": "string"
+        },
+        "label_field": {
+          "const": "label",
+          "title": "Label Field",
+          "type": "string"
+        },
+        "value_field": {
+          "const": "count",
+          "title": "Value Field",
+          "type": "string"
+        }
+      },
+      "required": [
+        "dataset",
+        "label_field",
+        "value_field"
+      ],
+      "title": "MetricDescriptor",
+      "type": "object"
+    },
+    "PlannerInput": {
+      "additionalProperties": false,
+      "properties": {
+        "request": {
+          "$ref": "#/$defs/AnalysisRequest"
+        },
+        "available_sources": {
+          "items": {
+            "enum": [
+              "local",
+              "taobao"
+            ],
+            "type": "string"
+          },
+          "title": "Available Sources",
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "request",
+        "available_sources"
+      ],
+      "title": "PlannerInput",
+      "type": "object"
+    },
+    "PlannerOutput": {
+      "additionalProperties": false,
+      "properties": {
+        "sources": {
+          "items": {
+            "enum": [
+              "local",
+              "taobao"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "keywords": {
+          "items": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "Keywords",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "dimensions": {
+          "items": {
+            "enum": [
+              "strength",
+              "weakness",
+              "pain_point",
+              "feature_request"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Dimensions",
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "sources",
+        "keywords",
+        "dimensions"
+      ],
+      "title": "PlannerOutput",
+      "type": "object"
+    },
+    "Review": {
+      "additionalProperties": false,
+      "properties": {
+        "review_id": {
+          "minLength": 1,
+          "title": "Review Id",
+          "type": "string"
+        },
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "local",
+            "taobao"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "source_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Id"
+        },
+        "product_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Product Id"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Url"
+        },
+        "time": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Time"
+        }
+      },
+      "required": [
+        "review_id",
+        "text",
+        "source",
+        "source_id",
+        "product_id",
+        "url",
+        "time"
+      ],
+      "title": "Review",
+      "type": "object"
+    },
+    "SemanticReview": {
+      "additionalProperties": false,
+      "properties": {
+        "review_id": {
+          "minLength": 1,
+          "title": "Review Id",
+          "type": "string"
+        },
+        "sentiment": {
+          "enum": [
+            "positive",
+            "negative",
+            "neutral",
+            "mixed",
+            "unknown"
+          ],
+          "title": "Sentiment",
+          "type": "string"
+        },
+        "topics": {
+          "items": {
+            "enum": [
+              "pricing",
+              "performance",
+              "reliability",
+              "usability",
+              "features",
+              "support",
+              "quality",
+              "delivery",
+              "packaging",
+              "other"
+            ],
+            "type": "string"
+          },
+          "title": "Topics",
+          "type": "array",
+          "uniqueItems": true
+        },
+        "feedback_value": {
+          "enum": [
+            "actionable",
+            "non_actionable",
+            "spam",
+            "unknown"
+          ],
+          "title": "Feedback Value",
+          "type": "string"
+        },
+        "confidence": {
+          "$ref": "#/$defs/Confidence"
+        },
+        "processed": {
+          "title": "Processed",
+          "type": "boolean"
+        },
+        "truncated": {
+          "title": "Truncated",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "review_id",
+        "sentiment",
+        "topics",
+        "feedback_value",
+        "confidence",
+        "processed",
+        "truncated"
+      ],
+      "title": "SemanticReview",
+      "type": "object"
+    },
+    "VisualizationInput": {
+      "additionalProperties": false,
+      "properties": {
+        "product": {
+          "title": "Product",
+          "type": "string"
+        },
+        "report_language": {
+          "enum": [
+            "zh-CN",
+            "en"
+          ],
+          "title": "Report Language",
+          "type": "string"
+        },
+        "available_metrics": {
+          "items": {
+            "$ref": "#/$defs/MetricDescriptor"
+          },
+          "title": "Available Metrics",
+          "type": "array"
+        },
+        "insight_titles": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Insight Titles",
+          "type": "array"
+        }
+      },
+      "required": [
+        "product",
+        "report_language",
+        "available_metrics",
+        "insight_titles"
+      ],
+      "title": "VisualizationInput",
+      "type": "object"
+    },
+    "VisualizationOutput": {
+      "additionalProperties": false,
+      "properties": {
+        "charts": {
+          "items": {
+            "$ref": "#/$defs/ChartSpec"
+          },
+          "maxItems": 4,
+          "minItems": 1,
+          "title": "Charts",
+          "type": "array"
+        }
+      },
+      "required": [
+        "charts"
+      ],
+      "title": "VisualizationOutput",
+      "type": "object"
+    }
+  }
+}

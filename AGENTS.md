@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-MarketLens AI is a Chinese-first product feedback analysis project. `MarketLens_AI_PRD_v0.1.md` contains the v0.2 PRD; its original filename is retained. Contracts, local import, LangGraph, semantic adaptation, statistics, routing, and Planner/Analyst are implemented through F09. Taobao collection and Dashboard remain planned.
+MarketLens AI is a Chinese-first product feedback analysis project. `MarketLens_AI_PRD_v0.1.md` contains the v0.2 PRD; its original filename is retained. The local analysis workflow, persistence, and Chinese Dashboard are implemented through F12. Taobao collection remains planned.
 
 Python modules live under `src/marketlens/`, automated tests under `tests/`, and design/progress documents under `docs/`. Keep future collection, NLP filtering, orchestration, and visualization separate. Use sanitized fixtures under `tests/fixtures/`; runtime data and browser sessions belong in ignored `.local/`.
 
@@ -16,7 +16,7 @@ Use Python 3.12 and uv from the repository root:
 - `uv run --locked ruff format --check .`: verify formatting.
 - `uv build --no-sources`: build wheel and source distribution.
 
-Install optional `workflow`, `llm`, `nlp`, `ui`, or `collector` extras only as needed. Use the `workflow` extra for graph integration tests and the `marketlens analyze --demo` CLI. Dashboard is planned.
+Install optional `workflow`, `llm`, `nlp`, `ui`, or `collector` extras only as needed. Use the `workflow` extra for graph integration tests and the `marketlens analyze --demo` CLI. Run the Dashboard with `uv run --extra workflow --extra llm --extra ui streamlit run src/marketlens/ui/app.py`; real mode also needs `nlp`.
 
 ## Coding Style & Naming Conventions
 

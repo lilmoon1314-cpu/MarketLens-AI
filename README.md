@@ -146,3 +146,22 @@ uv run --locked --extra workflow --extra llm --extra nlp marketlens analyze --re
 CLI 默认保存到 `.local/marketlens.sqlite3`，工作流检查点在同目录独立文件；用 `--data-dir PATH` 更改运行数据目录。`report.persisted` 表示最终报告事务是否成功；存储故障时请保存 stdout JSON。运行数据、评论和浏览器会话均不可提交。
 
 `RunStore.history()` 查看最近运行，`report(run_id)` 获取强类型报告，`evidence(run_id, ids, for_llm=True)` 受固定入选白名单限制，`delete_run(run_id)` 删除快照、证据、报告、检查点及不再引用的缓存。缓存仅用于相同版本的语义推理，LLM每次重新运行。
+
+## 中文 Dashboard（F12）
+
+```powershell
+uv sync --locked --group dev --extra workflow --extra llm --extra ui
+uv run --locked --extra workflow --extra llm --extra ui streamlit run src/marketlens/ui/app.py
+```
+
+浏览器打开 `http://127.0.0.1:8501`。默认演示模式使用明确标注的模拟 Agent；真实分析还需安装 `nlp` extra，并在忽略的 `.env` 中配置 LLM。可上传不超过 10 MiB 的 CSV/JSONL，查看进度、统计、洞察和原始证据；JSON 下载默认仅附引用，可勾选正文。
+
+历史记录与数据存于 `.local/`；设置 `MARKETLENS_DATA_DIR` 可更改目录。删除历史需要勾选确认。存储不可用时仍可在当前会话导出；刷新会丢失未保存的内存结果。服务器默认仅监听本机。淘宝采集将在 F13 接入。
+
+离线 UI 测试使用 Streamlit AppTest；实际浏览器验收需 `collector` extra 和已安装的 Chrome：启动页面后运行 `python tests/browser/accept_dashboard.py`，截图存于 `test/pic_test/`。截图/自动化使用合成评论，不能作为模型质量评估。
+
+真实模式启动时也要保留 `nlp` extra，避免 uv 同步时移除模型依赖：
+
+```powershell
+uv run --locked --extra workflow --extra llm --extra ui --extra nlp streamlit run src/marketlens/ui/app.py
+```

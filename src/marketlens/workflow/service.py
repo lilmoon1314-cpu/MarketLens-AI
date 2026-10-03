@@ -532,6 +532,7 @@ class AnalysisService:
                 yield self._event(state)
 
     def _event(self, state: AnalysisState) -> dict:
+        self.last_state = state
         event = {
             "run_id": state["run_id"],
             "stage": state["stage"],

@@ -62,7 +62,7 @@ class DemoAgents:
                 "charts": [
                     {
                         "chart": "bar",
-                        "title": "模拟证据数量",
+                        "title": "模拟反馈分布",
                         "dataset": data.available_metrics[0].dataset,
                         "x": "label",
                         "y": "count",

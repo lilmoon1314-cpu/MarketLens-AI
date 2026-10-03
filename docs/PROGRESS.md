@@ -3,12 +3,23 @@
 ## 当前状态
 
 - 日期：2026-10-03。
-- 阶段：F00开发环境与项目骨架、F01契约、F02导入、F03离线工作流完成；F04语义适配器完成；F05聚合统计完成；F06预算路由完成；下一项F07 LLM适配器。
+- 阶段：F00开发环境与项目骨架、F01契约、F02导入、F03离线工作流完成；F04语义适配器完成；F05聚合统计完成；F06预算路由完成；F07 LLM适配器完成；下一项F08 Planner接入。
 - PRD基线：`MarketLens_AI_PRD_v0.1.md`正文v0.2。
 - 本地基线：Python3.12、uv锁文件、src布局、pytest/Ruff、基础CI；Git main已初始化。
 - 远端目标：`https://github.com/lilmoon1314-cpu/MarketLens-AI.git`。
 - 远端核实：GitHub连接器确认空仓库、默认main、具有push权限；扩展网络Git只读连接成功。
-- 推送状态：F00已发布，交付记录提交fbdd8863f51bcd344f73d753613439dc8ed66e9d；F01已发布8480f77，Windows/Ubuntu CI通过；F02已发布b802c27，CI 37092971430成功；F03已发布8ba1671，CI 37093433646成功；F04已发布17bc94a；F05已发布3476a9d；F06本提交包含该任务，发布pending。
+- 推送状态：F00已发布，交付记录提交fbdd8863f51bcd344f73d753613439dc8ed66e9d；F01已发布8480f77，Windows/Ubuntu CI通过；F02已发布b802c27，CI 37092971430成功；F03已发布8ba1671，CI 37093433646成功；F04已发布17bc94a；F05已发布3476a9d；F06已发布dca80d2；F07本提交包含该任务，发布pending。
+
+## F07 — LLM结构化输出适配器
+
+- 日期：2026-10-03；状态：实现及本地/真实API验证完成，提交时发布pending。
+- 交付：配置地址/模型/密钥、JSON对象/显式JSON Schema模式、Pydantic严格输出、45秒超时、关闭SDK重试、应用层一次临时失败/非法输出重试、脱敏错误、usage与全运行预算。
+- 计费：发送前按完整消息/Schema字节保守预留输出；每次尝试均计入账本，服务usage有效记reported，否则estimated_reserved；不捏造价格。context较小时下调输入上限，超限不请求。
+- 验证：离线pytest 167 passed、3外部检查排除；真实LangChain/OpenAI SDK经MockTransport验证两种格式、500仅一次重试、请求参数与usage；错误JSON/额外字段/缺失字段/预算/配置优先级/密钥隐藏均通过。
+- 真实验证：用户配置的服务最小PlannerOutput live_api 1 passed（12.98秒）；仅测试接口，不宣称Planner行为已验收。并行测试缓存出现WinError5警告，未影响结果或调用。
+- 配置迁移：用户最初将配置写入跟踪的.env.example；已完整复制到忽略.env并恢复无凭据模板，再添加公开token参数。密钥未输出/提交，git check-ignore确认.env忽略。
+- 质量：Ruff/lock/打包通过；CI加llm extra执行HTTP离线集成。无UI截图。
+- 后续：发布验证后自动推进F08；配置障碍已解决，不需用户重新提供凭据。
 
 ## F06 — 高价值预算路由
 

@@ -82,13 +82,25 @@ uv run --locked --extra workflow --extra nlp pytest tests/integration/test_gline
 
 `select_reviews(reviews, annotations, budget)` 仅接受processed、actionable且value分数至少0.60的候选；有效评论N包含spam，独立上限为`max(0, (3*N-1)//10)`，1000条最多299条。按最高分主主题分层，主题并列按固定枚举，层内按value分数/ID稳定排序；先覆盖各层，再按剩余容量用最大余数分配。
 
-`RoutingBudget`限制每批8000输入tokens（预留2000提示词/Schema）、2000输出tokens、20条和运行剩余60000 tokens。无tokenizer时按完整评论与标注JSON的UTF-8字节保守估算，报告明确estimated；过长评论整条跳过，保留原文，不能任意切证据。实际usage/重试费用由F07累计，Planner等先前消耗须从remaining扣除。结果包含固定selected_ids、batches及未选计数；`selected_evidence`拒绝白名单外ID。
+`RoutingBudget`限制每批8000输入tokens（预留2000提示词/Schema）、2000输出tokens、20条和运行剩余60000 tokens。无tokenizer时按完整评论与标注JSON的UTF-8字节保守估算，报告明确estimated；过长评论整条跳过，保留原文，不能任意切证据。实际usage/重试费用已由F07累计，Planner等先前消耗须从remaining扣除。结果包含固定selected_ids、batches及未选计数；`selected_evidence`拒绝白名单外ID。
 
 图现为Planner→导入→语义→统计/路由→有预算时Analyst→Visualization→报告。真实Analyst批次与合并在F09实现，当前三个Agent为demo，不能用于真实API；无候选时输出partial统计。
 
 ## 配置
 
-`.env.example` 列出后续功能使用的配置项；F00 尚不加载 `.env`。LLM 服务地址、密钥及模型由环境变量配置。淘宝评论将按用户指定的商品链接采集，登录状态保存在 `.local/` 的独立浏览器目录，不提交账号密码、Cookie、原始评论或运行数据库。
+`.env.example` 是无凭据模板，复制到忽略的 `.env` 再填写。F07的 `load_llm_config()` 默认读取仓库根目录 `.env`，进程环境变量优先；支持普通KEY=VALUE、单/双引号和export，不执行脚本或变量展开。LLM 服务地址、密钥及模型由环境变量配置。淘宝评论将按用户指定的商品链接采集，登录状态保存在 `.local/` 的独立浏览器目录，不提交账号密码、Cookie、原始评论或运行数据库。
+
+## 结构化LLM适配器
+
+```powershell
+uv sync --locked --group dev --extra workflow --extra llm
+uv run --locked --extra workflow --extra llm pytest -q
+uv run --locked --extra workflow --extra llm pytest tests/integration/test_llm_smoke.py -m live_api -q --tb=no
+```
+
+显式live_api会访问已配置服务并产生用量；可用`MARKETLENS_ENV_FILE`指定配置文件。`StructuredLLM.generate(OutputContract, system, payload)`通过ChatOpenAI请求JSON，随后用Pydantic严格校验。默认json_mode兼容JSON对象接口，可显式设json_schema；不自动更换provider或输出模式。超时45秒，SDK重试关闭，临时网络/429/5xx或非法JSON最多应用层重试一次；永久错误不重试，错误信息不含原始服务异常。
+
+每次调用前保守估计完整消息/Schema字节并预留输出，检查context/input/run上限；重试也收费并计数。服务返回有效usage时记录reported，无usage/网络失败保留estimated_reserved；不得将估计当精确账单。每次运行创建独立适配器，`remaining_tokens`供后续路由使用。实际服务需遵循标准Chat Completions字段，见[ChatOpenAI官方说明](https://docs.langchain.com/oss/python/integrations/chat/openai)。当前适配器独立可用，三个真实Agent在F08—F10逐项接入。
 
 ## 测试约定
 

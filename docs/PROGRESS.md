@@ -3,12 +3,23 @@
 ## 当前状态
 
 - 日期：2026-10-03。
-- 阶段：F00开发环境与项目骨架、F01契约、F02导入、F03离线工作流完成；F04语义适配器完成；F05聚合统计完成；下一项F06预算路由。
+- 阶段：F00开发环境与项目骨架、F01契约、F02导入、F03离线工作流完成；F04语义适配器完成；F05聚合统计完成；F06预算路由完成；下一项F07 LLM适配器。
 - PRD基线：`MarketLens_AI_PRD_v0.1.md`正文v0.2。
 - 本地基线：Python3.12、uv锁文件、src布局、pytest/Ruff、基础CI；Git main已初始化。
 - 远端目标：`https://github.com/lilmoon1314-cpu/MarketLens-AI.git`。
 - 远端核实：GitHub连接器确认空仓库、默认main、具有push权限；扩展网络Git只读连接成功。
-- 推送状态：F00已发布，交付记录提交fbdd8863f51bcd344f73d753613439dc8ed66e9d；F01已发布8480f77，Windows/Ubuntu CI通过；F02已发布b802c27，CI 37092971430成功；F03已发布8ba1671，CI 37093433646成功；F04已发布17bc94a；F05本提交包含该任务，发布pending。
+- 推送状态：F00已发布，交付记录提交fbdd8863f51bcd344f73d753613439dc8ed66e9d；F01已发布8480f77，Windows/Ubuntu CI通过；F02已发布b802c27，CI 37092971430成功；F03已发布8ba1671，CI 37093433646成功；F04已发布17bc94a；F05已发布3476a9d；F06本提交包含该任务，发布pending。
+
+## F06 — 高价值预算路由
+
+- 日期：2026-10-03；状态：实现及本地验证完成，提交时发布pending。
+- 交付：整数严格<30%上限、processed/actionable>=0.60候选、主主题分层/最大余数/稳定排序、完整评论JSON保守token估算、输入/输出/剩余运行/批条数限制、固定白名单证据读取。
+- 图接入：semantic→aggregate/selection节点，支持注入F04真实适配器；默认明确DemoSemantic。失败保留unknown统计，无候选或预算不足跳过Analyst并partial；报告展示Statistics/selection。
+- 验证：离线pytest 140 passed、2 model_smoke排除；新增比例0—1000全部整数边界、手算19/8/2层分配、输入乱序、长评论不截证据、10000/0 token预算、299上限、白名单拒绝、语义失败图测试。
+- 真实验证：两个显式model_smoke通过，14.53秒含加载；真实GLiNER2→统计/路由→fake三Agent图通过，仍标demo，不宣称真实LLM或模型准确率验收。
+- 质量：Ruff/lock/打包通过；无前端截图。F04 CI 37094307495成功。
+- 边界：token数是estimated，需F07累计实测usage/重试，F08扣Planner消耗、F09正式分批/合并。候选错分类风险沿用F04，不静默降阈值或把全量文本发LLM。
+- 后续：发布后自动推进F07；用户回复LLM已配置，目前进程环境/.env不可见，接入阶段进一步检查本机配置可读性。
 
 ## F05 — 聚合统计
 

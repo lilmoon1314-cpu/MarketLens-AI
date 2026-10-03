@@ -24,6 +24,8 @@ from marketlens.contracts import (
     VisualizationOutput,
 )
 from marketlens.tools.collection import load_local_reviews
+from marketlens.tools.routing import RoutingBudget, select_reviews, selected_evidence
+from marketlens.tools.statistics import aggregate_statistics
 
 
 class Agents(Protocol):
@@ -32,10 +34,16 @@ class Agents(Protocol):
     def visualization(self, data: VisualizationInput) -> VisualizationOutput: ...
 
 
+class SemanticBackend(Protocol):
+    def analyze(self, reviews: list[Review]) -> list[SemanticReview]: ...
+
+
 @dataclass(frozen=True)
 class Context:
     datasets: Mapping[str, Path]
     agents: Agents
+    semantic: SemanticBackend
+    budget: RoutingBudget
 
 
 def _initial(request: AnalysisRequest) -> AnalysisState:
@@ -83,35 +91,60 @@ def _collect(state: AnalysisState, runtime: Runtime[Context]) -> dict:
 
 
 def _analyst(state: AnalysisState, runtime: Runtime[Context]) -> dict:
-    # Demo transport fixture only: one review when N>=4, hence strictly below 30%.
-    # Real semantic candidates, stratification, and token budgeting are introduced in F04-F06.
     request = AnalysisRequest.model_validate(state["request"])
-    review = Review.model_validate_json(json.dumps(state["reviews"][0]))
-    semantic = SemanticReview(
-        review_id=review.review_id,
-        sentiment="unknown",
-        topics=[],
-        feedback_value="unknown",
-        confidence={"sentiment": None, "feedback_value": None, "topics": {}},
-        processed=False,
-        truncated=False,
-    )
+    reviews = selected_evidence(_reviews(state), state["selected_ids"], state["selected_ids"])
+    annotations = {
+        item["review_id"]: SemanticReview.model_validate(item) for item in state["annotations"]
+    }
     data = AnalystInput(
         product=request.product,
         goal=request.goal,
         report_language=request.report_language,
         dimensions=state["plan"]["dimensions"],
-        reviews=[AnnotatedReview(review=review, semantic=semantic)],
+        reviews=[
+            AnnotatedReview(review=review, semantic=annotations[review.review_id])
+            for review in reviews
+        ],
     )
     output = runtime.context.agents.analyst(data)
     output = AnalystOutput.model_validate(output.model_dump())
     if any(
-        evidence != review.review_id
+        evidence not in state["selected_ids"]
         for insight in output.insights
         for evidence in insight.evidence_ids
     ):
         raise ValueError("invalid evidence")
-    return {"selected_ids": [review.review_id], "analyst_result": output.model_dump(mode="json")}
+    return {"analyst_result": output.model_dump(mode="json")}
+
+
+def _reviews(state: AnalysisState) -> list[Review]:
+    return [Review.model_validate_json(json.dumps(item)) for item in state["reviews"]]
+
+
+def _semantic(state: AnalysisState, runtime: Runtime[Context]) -> dict:
+    reviews = _reviews(state)
+    annotations = runtime.context.semantic.analyze(reviews)
+    annotations = [SemanticReview.model_validate(item.model_dump()) for item in annotations]
+    if len(annotations) != len(reviews) or {item.review_id for item in annotations} != {
+        review.review_id for review in reviews
+    }:
+        raise ValueError("semantic review IDs mismatch")
+    return {"annotations": [item.model_dump(mode="json") for item in annotations]}
+
+
+def _aggregate(state: AnalysisState, runtime: Runtime[Context]) -> dict:
+    reviews = _reviews(state)
+    annotations = [SemanticReview.model_validate(item) for item in state["annotations"]]
+    statistics = aggregate_statistics(
+        reviews, annotations, state["metrics"]["raw_count"], state["rejected_counts"]
+    )
+    selection = select_reviews(reviews, annotations, runtime.context.budget)
+    return {
+        "statistics": statistics.model_dump(mode="json"),
+        "selection": selection,
+        "candidate_ids": selection["candidate_ids"],
+        "selected_ids": selection["selected_ids"],
+    }
 
 
 def _visualization(state: AnalysisState, runtime: Runtime[Context]) -> dict:
@@ -156,7 +189,11 @@ def _finalize(state: AnalysisState) -> dict:
     if status == "running":
         if not state["reviews"]:
             status = "insufficient_data"
-        elif len(state["reviews"]) < 4 or state["rejected_counts"]:
+        elif (
+            not state["selected_ids"]
+            or state["rejected_counts"]
+            or state["statistics"].get("unprocessed_count", 0)
+        ):
             status = "partial"
         else:
             status = "complete"
@@ -168,6 +205,8 @@ def _finalize(state: AnalysisState) -> dict:
         "raw_count": state["metrics"].get("raw_count", 0),
         "rejected_counts": state["rejected_counts"],
         "selected_ids": state["selected_ids"],
+        "statistics": state["statistics"],
+        "selection": state["selection"],
         "analyst_result": state["analyst_result"],
         "visualization": state["visualization"],
         "warnings": state["warnings"],
@@ -181,6 +220,8 @@ def build_graph():
     for name, node in [
         ("planner", _planner),
         ("collect", _collect),
+        ("semantic", _semantic),
+        ("aggregate", _aggregate),
         ("analyst", _analyst),
         ("visualization", _visualization),
     ]:
@@ -189,7 +230,11 @@ def build_graph():
     graph.add_edge(START, "planner")
     graph.add_conditional_edges("planner", lambda s: "finalize" if s["errors"] else "collect")
     graph.add_conditional_edges(
-        "collect", lambda s: "analyst" if not s["errors"] and len(s["reviews"]) >= 4 else "finalize"
+        "collect", lambda s: "semantic" if not s["errors"] and s["reviews"] else "finalize"
+    )
+    graph.add_edge("semantic", "aggregate")
+    graph.add_conditional_edges(
+        "aggregate", lambda s: "analyst" if not s["errors"] and s["selected_ids"] else "finalize"
     )
     graph.add_conditional_edges("analyst", lambda s: "finalize" if s["errors"] else "visualization")
     graph.add_edge("visualization", "finalize")
@@ -200,8 +245,21 @@ def build_graph():
 class AnalysisService:
     """Explicit demo service; shared graph for run and progress streaming."""
 
-    def __init__(self, datasets: Mapping[str, Path], agents: Agents):
-        self.context = Context(dict(datasets), agents)
+    def __init__(
+        self,
+        datasets: Mapping[str, Path],
+        agents: Agents,
+        semantic: SemanticBackend | None = None,
+        budget: RoutingBudget | None = None,
+    ):
+        from .demo import DemoSemantic
+
+        self.context = Context(
+            dict(datasets),
+            agents,
+            semantic if semantic is not None else DemoSemantic(),
+            budget or RoutingBudget(),
+        )
         self.graph = build_graph()
 
     def run(self, request: AnalysisRequest) -> dict:

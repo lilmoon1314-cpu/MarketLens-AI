@@ -1,5 +1,6 @@
 """Explicit offline fixtures: these outputs do not evaluate AI quality."""
 
+from marketlens.adapters.gliner import convert
 from marketlens.contracts import (
     AnalystInput,
     AnalystOutput,
@@ -9,6 +10,24 @@ from marketlens.contracts import (
     VisualizationInput,
     VisualizationOutput,
 )
+
+
+class DemoSemantic:
+    """Fixed semantic fixture; no model quality claim."""
+
+    def analyze(self, reviews):
+        return [
+            convert(
+                review.review_id,
+                {
+                    "sentiment": {"label": "positive", "confidence": 1.0},
+                    "topics": [{"label": "quality", "confidence": 1.0}],
+                    "feedback_value": {"label": "actionable", "confidence": 1.0},
+                },
+                False,
+            )
+            for review in reviews
+        ]
 
 
 class DemoAgents:

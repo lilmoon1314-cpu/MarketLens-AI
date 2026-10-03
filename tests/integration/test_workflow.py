@@ -84,6 +84,21 @@ def test_missing_dataset_is_failed_collection(tmp_path, analysis_request):
     assert report["errors"][0]["stage"] == "collect"
 
 
+def test_semantic_failure_keeps_unknown_statistics(tmp_path, analysis_request):
+    class BrokenSemantic:
+        def analyze(self, reviews):
+            raise RuntimeError("model unavailable")
+
+    report = AnalysisService(dataset(tmp_path, 10), DemoAgents(), BrokenSemantic()).run(
+        analysis_request
+    )
+    assert report["status"] == "partial"
+    assert report["statistics"]["unprocessed_count"] == 10
+    assert report["statistics"]["sentiment_distribution"]["unknown"] == 10
+    assert report["selected_ids"] == []
+    assert report["errors"][0]["stage"] == "semantic"
+
+
 def test_agent_cannot_expand_source_or_evidence(tmp_path, analysis_request):
     class WrongSource(DemoAgents):
         def planner(self, data):
@@ -109,6 +124,8 @@ def test_stream_order_and_runs_are_isolated(tmp_path, analysis_request):
         "start",
         "planner",
         "collect",
+        "semantic",
+        "aggregate",
         "analyst",
         "visualization",
         "finalize",

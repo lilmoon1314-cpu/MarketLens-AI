@@ -45,9 +45,9 @@ uv run --locked --extra workflow marketlens analyze --demo --input reviews.csv -
 uv run --locked --extra workflow pytest -q
 ```
 
-CLI将输入文件注册到本次运行，再调用统一的 `AnalysisService`。`run(request)` 返回JSON报告；`stream(request)` 发出阶段进度，末事件包含报告。三个模拟Agent只验证契约与图编排，不产生真实模型分析。没有数据时返回 `insufficient_data`；坏文件/节点失败保留错误状态；少于4条时不调用模拟Analyst。模拟证据最多1条且严格低于30%，正式分层与token预算在F06实现。CLI成功/部分结果退出0，失败退出1，参数或依赖错误退出2。
+CLI将输入文件注册到本次运行，再调用统一的 `AnalysisService`。`run(request)` 返回JSON报告；`stream(request)` 发出阶段进度，末事件包含报告。三个模拟Agent只验证契约与图编排，不产生真实模型分析。没有数据时返回 `insufficient_data`；坏文件/节点失败保留错误状态；少于4条时不调用模拟Analyst。F06已接入正式分层与token预算；demo的语义标注仍由固定fixture提供。CLI成功/部分结果退出0，失败退出1，参数或依赖错误退出2。
 
-运行时依赖通过LangGraph context注入，State只存可序列化数据。图API参考[LangGraph官方文档](https://docs.langchain.com/oss/python/langgraph/graph-api)。没有持久化、真实语义标注、真实LLM或可渲染统计数据；模拟ChartSpec仅验证输出传递。
+运行时依赖通过LangGraph context注入，State只存可序列化数据。图API参考[LangGraph官方文档](https://docs.langchain.com/oss/python/langgraph/graph-api)。没有持久化或真实LLM。可注入SemanticAnalyzer验证真实语义+模拟Agent混合流程，报告仍标demo；ChartSpec尚无UI绑定。
 
 ## 可选依赖
 
@@ -72,11 +72,19 @@ uv run --locked --extra workflow --extra nlp pytest tests/integration/test_gline
 
 `SemanticAnalyzer().analyze(reviews)` 延迟加载CPU模型，进程内复用；首次下载约1.23GB权重到`.local/huggingface/hub`。模型ID与revision固定，使用GLiNER2 2.0.0 span架构。`GLiNERConfig`支持batch_size、char/whitespace切分、zh/en标签描述和缓存目录。普通测试通过注入backend，不下载模型。
 
-返回逐评论`SemanticReview`，包括实际分数、processed/truncated。缺失分数保留null；sentiment低于0.50记unknown，主题低于0.40剔除、无命中记other且不伪造其分数。长文本按实际Schema编码容量截断推理视图；批次失败减半重试一次。模型加载失败向调用方报错，不自动切模型或调用LLM。适配器尚未接入demo图，统计工具已在F05实现，正式图接入与路由在F06实现。真实smoke与四组开发对比见[验证记录](docs/GLINER_DEVELOPMENT_CHECK.md)，广告和负面情绪分类存在已记录质量风险。
+返回逐评论`SemanticReview`，包括实际分数、processed/truncated。缺失分数保留null；sentiment低于0.50记unknown，主题低于0.40剔除、无命中记other且不伪造其分数。长文本按实际Schema编码容量截断推理视图；批次失败减半重试一次。模型加载失败向调用方报错，不自动切模型或调用LLM。适配器可注入统一服务，F05统计与F06路由已接入；默认demo仍使用模拟语义。真实smoke与四组开发对比见[验证记录](docs/GLINER_DEVELOPMENT_CHECK.md)，广告和负面情绪分类存在已记录质量风险。
 
 ## 聚合统计
 
-`aggregate_statistics(reviews, annotations, raw_count, rejected_counts)` 返回严格的 `Statistics` 契约。ID必须唯一且标注只属于当前评论；raw必须等于valid加拒绝数。缺失或失败标注进入unknown，不能归为neutral。spam保留在value分布和valid分母，情绪/主题使用排除spam的product_denominator；多主题评论可贡献多个计数，topic总数可大于分母。有效样本少于20条标记low_sample。计数由程序生成，模型不输出总体频次。此工具尚未接入demo图。
+`aggregate_statistics(reviews, annotations, raw_count, rejected_counts)` 返回严格的 `Statistics` 契约。ID必须唯一且标注只属于当前评论；raw必须等于valid加拒绝数。缺失或失败标注进入unknown，不能归为neutral。spam保留在value分布和valid分母，情绪/主题使用排除spam的product_denominator；多主题评论可贡献多个计数，topic总数可大于分母。有效样本少于20条标记low_sample。计数由程序生成，模型不输出总体频次。此工具已接入统一图。
+
+## 高价值预算路由
+
+`select_reviews(reviews, annotations, budget)` 仅接受processed、actionable且value分数至少0.60的候选；有效评论N包含spam，独立上限为`max(0, (3*N-1)//10)`，1000条最多299条。按最高分主主题分层，主题并列按固定枚举，层内按value分数/ID稳定排序；先覆盖各层，再按剩余容量用最大余数分配。
+
+`RoutingBudget`限制每批8000输入tokens（预留2000提示词/Schema）、2000输出tokens、20条和运行剩余60000 tokens。无tokenizer时按完整评论与标注JSON的UTF-8字节保守估算，报告明确estimated；过长评论整条跳过，保留原文，不能任意切证据。实际usage/重试费用由F07累计，Planner等先前消耗须从remaining扣除。结果包含固定selected_ids、batches及未选计数；`selected_evidence`拒绝白名单外ID。
+
+图现为Planner→导入→语义→统计/路由→有预算时Analyst→Visualization→报告。真实Analyst批次与合并在F09实现，当前三个Agent为demo，不能用于真实API；无候选时输出partial统计。
 
 ## 配置
 

@@ -3,12 +3,21 @@
 ## 当前状态
 
 - 日期：2026-10-03。
-- 阶段：F00开发环境与项目骨架、F01契约、F02导入、F03离线工作流完成；F04语义适配器完成；F05聚合统计完成；F06预算路由完成；F07 LLM适配器完成；下一项F08 Planner接入。
+- 阶段：F00开发环境与项目骨架、F01契约、F02导入、F03离线工作流完成；F04语义适配器完成；F05聚合统计完成；F06预算路由完成；F07 LLM适配器完成；F08 Planner接入完成；下一项F09 Analyst与证据。
 - PRD基线：`MarketLens_AI_PRD_v0.1.md`正文v0.2。
 - 本地基线：Python3.12、uv锁文件、src布局、pytest/Ruff、基础CI；Git main已初始化。
 - 远端目标：`https://github.com/lilmoon1314-cpu/MarketLens-AI.git`。
 - 远端核实：GitHub连接器确认空仓库、默认main、具有push权限；扩展网络Git只读连接成功。
-- 推送状态：F00已发布，交付记录提交fbdd8863f51bcd344f73d753613439dc8ed66e9d；F01已发布8480f77，Windows/Ubuntu CI通过；F02已发布b802c27，CI 37092971430成功；F03已发布8ba1671，CI 37093433646成功；F04已发布17bc94a；F05已发布3476a9d；F06已发布dca80d2；F07本提交包含该任务，发布pending。
+- 推送状态：F00已发布，交付记录提交fbdd8863f51bcd344f73d753613439dc8ed66e9d；F01已发布8480f77，Windows/Ubuntu CI通过；F02已发布b802c27，CI 37092971430成功；F03已发布8ba1671，CI 37093433646成功；F04已发布17bc94a；F05已发布3476a9d；F06已发布dca80d2；F07已发布0f3f33b，CI 37095966234成功；F08本提交包含该任务，发布pending。
+
+## F08 — Research Planner接入
+
+- 日期：2026-10-03；状态：实现及本地/真实API验证完成，提交时发布pending。
+- 交付：版本化中文Planner提示词、输入到计划、request/available来源交集校验、失败/越权fallback与warnings；无可用交集时明确失败。
+- 图：支持注入PlannerAgent，使用同运行LLM账本，统计/路由前扣除Planner消耗并限制provider输入/context/output；标注planner_mode与usage。混合流程整体仍demo，不假装Analyst已真实接入。
+- 验证：离线pytest 173 passed、4外部检查排除；新增允许交集、越权、敏感错误、200字产品fallback关键词100字、空交集、Planner消耗4500/5000后无评论预算、失败后仍导入测试。
+- 真实验证：脱敏耳机请求Planner smoke 1 passed（9.37秒），来源只local、关键词非空、未降级；Ruff/lock/打包通过。无前端截图。
+- 后续：发布后自动推进F09；真实Analyst批次/合并与证据检查为下一独立任务。
 
 ## F07 — LLM结构化输出适配器
 

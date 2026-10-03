@@ -99,6 +99,50 @@ def test_semantic_failure_keeps_unknown_statistics(tmp_path, analysis_request):
     assert report["errors"][0]["stage"] == "semantic"
 
 
+def test_planner_usage_is_deducted_before_review_selection(tmp_path, analysis_request):
+    from marketlens.adapters.llm import Response, StructuredLLM
+    from marketlens.agents.planner import PlannerAgent
+    from marketlens.config import LLMConfig
+
+    class Backend:
+        def complete(self, messages, schema):
+            return Response(
+                json.dumps(
+                    {"sources": ["local"], "keywords": ["示例"], "dimensions": ["pain_point"]}
+                ),
+                4300,
+                200,
+            )
+
+    llm = StructuredLLM(
+        LLMConfig("https://provider.example/v1", "fixture", "sanitized", run_tokens=5000), Backend()
+    )
+    report = AnalysisService(dataset(tmp_path, 100), DemoAgents(), planner=PlannerAgent(llm)).run(
+        analysis_request
+    )
+    assert report["metrics"]["llm"]["charged_tokens"] == 4500
+    assert report["selection"]["selected_ids"] == []
+    assert report["status"] == "partial"
+
+
+def test_planner_fallback_continues_collection(tmp_path, analysis_request):
+    from marketlens.adapters.llm import ProviderError, StructuredLLM
+    from marketlens.agents.planner import PlannerAgent
+    from marketlens.config import LLMConfig
+
+    class Backend:
+        def complete(self, messages, schema):
+            raise ProviderError(False)
+
+    llm = StructuredLLM(LLMConfig("https://provider.example/v1", "fixture", "sanitized"), Backend())
+    report = AnalysisService(dataset(tmp_path, 4), DemoAgents(), planner=PlannerAgent(llm)).run(
+        analysis_request
+    )
+    assert report["review_count"] == 4
+    assert any(w["code"] == "planner_fallback" for w in report["warnings"])
+    assert report["status"] == "partial"
+
+
 def test_agent_cannot_expand_source_or_evidence(tmp_path, analysis_request):
     class WrongSource(DemoAgents):
         def planner(self, data):

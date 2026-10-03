@@ -100,7 +100,13 @@ uv run --locked --extra workflow --extra llm pytest tests/integration/test_llm_s
 
 显式live_api会访问已配置服务并产生用量；可用`MARKETLENS_ENV_FILE`指定配置文件。`StructuredLLM.generate(OutputContract, system, payload)`通过ChatOpenAI请求JSON，随后用Pydantic严格校验。默认json_mode兼容JSON对象接口，可显式设json_schema；不自动更换provider或输出模式。超时45秒，SDK重试关闭，临时网络/429/5xx或非法JSON最多应用层重试一次；永久错误不重试，错误信息不含原始服务异常。
 
-每次调用前保守估计完整消息/Schema字节并预留输出，检查context/input/run上限；重试也收费并计数。服务返回有效usage时记录reported，无usage/网络失败保留estimated_reserved；不得将估计当精确账单。每次运行创建独立适配器，`remaining_tokens`供后续路由使用。实际服务需遵循标准Chat Completions字段，见[ChatOpenAI官方说明](https://docs.langchain.com/oss/python/integrations/chat/openai)。当前适配器独立可用，三个真实Agent在F08—F10逐项接入。
+每次调用前保守估计完整消息/Schema字节并预留输出，检查context/input/run上限；重试也收费并计数。服务返回有效usage时记录reported，无usage/网络失败保留estimated_reserved；不得将估计当精确账单。每次运行创建独立适配器，`remaining_tokens`供后续路由使用。实际服务需遵循标准Chat Completions字段，见[ChatOpenAI官方说明](https://docs.langchain.com/oss/python/integrations/chat/openai)。当前适配器独立可用，真实Planner已在F08接入；Analyst与Visualization继续F09/F10。
+
+## Research Planner
+
+`PlannerAgent(llm).plan(PlannerInput)`返回计划与warnings；只允许请求来源和可用来源的交集。网络/Schema/越权失败使用产品名关键词和四个默认维度，记录planner_fallback；空交集直接失败，不虚构数据来源。提示词版本在`marketlens.prompts.planner`。
+
+可通过`AnalysisService(..., planner=PlannerAgent(llm))`接入真实Planner；同一运行共享StructuredLLM账本，路由扣除Planner实测/预留消耗，遵守provider context/input/output限制。每个真实运行创建新的LLM/Planner实例。CLI仍仅demo，其余Agent尚未完成真实接入；混合流程仍标demo，Planner模式及usage单独记录。
 
 ## 测试约定
 

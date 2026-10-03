@@ -2,7 +2,7 @@
 
 import json
 from collections.abc import Iterator, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Protocol
 from uuid import uuid4
@@ -10,6 +10,7 @@ from uuid import uuid4
 from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime
 
+from marketlens.agents.planner import PlannerAgent
 from marketlens.contracts import (
     AnalysisRequest,
     AnalysisState,
@@ -44,6 +45,7 @@ class Context:
     agents: Agents
     semantic: SemanticBackend
     budget: RoutingBudget
+    planner: PlannerAgent | None
 
 
 def _initial(request: AnalysisRequest) -> AnalysisState:
@@ -73,11 +75,23 @@ def _initial(request: AnalysisRequest) -> AnalysisState:
 def _planner(state: AnalysisState, runtime: Runtime[Context]) -> dict:
     request = AnalysisRequest.model_validate(state["request"])
     data = PlannerInput(request=request, available_sources=["local"])
-    plan = runtime.context.agents.planner(data)
+    warning = []
+    metrics = state["metrics"]
+    if runtime.context.planner is not None:
+        result = runtime.context.planner.plan(data)
+        plan, warning = result.plan, result.warnings
+        metrics = {**metrics, "llm": runtime.context.planner.llm.metrics(), "planner_mode": "real"}
+    else:
+        plan = runtime.context.agents.planner(data)
     plan = PlannerOutput.model_validate(plan.model_dump())
     if any(source not in request.sources or source != "local" for source in plan.sources):
         raise ValueError("unavailable source")
-    return {"plan": plan.model_dump(mode="json")}
+    return {
+        "plan": plan.model_dump(mode="json"),
+        "warnings": [*state["warnings"], *warning],
+        "metrics": metrics,
+        "status": "partial" if warning else state["status"],
+    }
 
 
 def _collect(state: AnalysisState, runtime: Runtime[Context]) -> dict:
@@ -138,7 +152,16 @@ def _aggregate(state: AnalysisState, runtime: Runtime[Context]) -> dict:
     statistics = aggregate_statistics(
         reviews, annotations, state["metrics"]["raw_count"], state["rejected_counts"]
     )
-    selection = select_reviews(reviews, annotations, runtime.context.budget)
+    budget = runtime.context.budget
+    if runtime.context.planner is not None:
+        llm = runtime.context.planner.llm
+        budget = replace(
+            budget,
+            remaining_run_tokens=min(budget.remaining_run_tokens, llm.remaining_tokens),
+            input_tokens=min(budget.input_tokens, llm.config.effective_input_tokens),
+            output_tokens=llm.config.output_tokens,
+        )
+    selection = select_reviews(reviews, annotations, budget)
     return {
         "statistics": statistics.model_dump(mode="json"),
         "selection": selection,
@@ -207,6 +230,7 @@ def _finalize(state: AnalysisState) -> dict:
         "selected_ids": state["selected_ids"],
         "statistics": state["statistics"],
         "selection": state["selection"],
+        "metrics": state["metrics"],
         "analyst_result": state["analyst_result"],
         "visualization": state["visualization"],
         "warnings": state["warnings"],
@@ -251,6 +275,7 @@ class AnalysisService:
         agents: Agents,
         semantic: SemanticBackend | None = None,
         budget: RoutingBudget | None = None,
+        planner: PlannerAgent | None = None,
     ):
         from .demo import DemoSemantic
 
@@ -259,6 +284,7 @@ class AnalysisService:
             agents,
             semantic if semantic is not None else DemoSemantic(),
             budget or RoutingBudget(),
+            planner,
         )
         self.graph = build_graph()
 

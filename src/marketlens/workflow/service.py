@@ -1,6 +1,7 @@
 """Offline graph skeleton with isolated runtime dependencies and safe error messages."""
 
 import json
+import sqlite3
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -14,6 +15,7 @@ from marketlens.agents.analyst import AnalystAgent
 from marketlens.agents.planner import PlannerAgent
 from marketlens.agents.visualization import VisualizationAgent
 from marketlens.contracts import (
+    AnalysisReport,
     AnalysisRequest,
     AnalysisState,
     AnalystInput,
@@ -28,6 +30,7 @@ from marketlens.contracts import (
     VisualizationOutput,
 )
 from marketlens.contracts.statistics import Statistics
+from marketlens.storage.sqlite import RunStore
 from marketlens.tools.charts import bind_charts, chart_datasets, default_charts, validate_charts
 from marketlens.tools.collection import load_local_reviews
 from marketlens.tools.evidence import insight_records
@@ -55,6 +58,7 @@ class Context:
     analyst: AnalystAgent | None
     visualization: VisualizationAgent | None
     mode: str
+    store: RunStore | None
 
 
 def _initial(request: AnalysisRequest, mode: str = "demo") -> AnalysisState:
@@ -162,13 +166,50 @@ def _reviews(state: AnalysisState) -> list[Review]:
 
 def _semantic(state: AnalysisState, runtime: Runtime[Context]) -> dict:
     reviews = _reviews(state)
-    annotations = runtime.context.semantic.analyze(reviews)
+    backend = runtime.context.semantic
+    metadata = getattr(backend, "cache_metadata", lambda: None)()
+    if metadata:
+        from marketlens.prompts.analyst import VERSION as analyst_version
+        from marketlens.prompts.planner import VERSION as planner_version
+        from marketlens.prompts.visualization import VERSION as visualization_version
+
+        metadata = {
+            **metadata,
+            "language": state["request"]["report_language"],
+            "prompts": [planner_version, analyst_version, visualization_version],
+        }
+    store = runtime.context.store
+    hits = {}
+    if store and store.enabled and metadata:
+        try:
+            for review in reviews:
+                cached = store.cached(review.text, metadata, review.review_id)
+                if cached is not None:
+                    hits[review.review_id] = cached
+        except sqlite3.Error:
+            hits = {}  # Inference remains available when cache reading fails.
+    misses = [review for review in reviews if review.review_id not in hits]
+    fresh = backend.analyze(misses) if misses else []
+    if len(fresh) != len(misses) or {a.review_id for a in fresh} != {
+        review.review_id for review in misses
+    }:
+        raise ValueError("semantic review IDs mismatch")
+    by_id = {**hits, **{a.review_id: a for a in fresh}}
+    annotations = [by_id[review.review_id] for review in reviews]
     annotations = [SemanticReview.model_validate(item.model_dump()) for item in annotations]
     if len(annotations) != len(reviews) or {item.review_id for item in annotations} != {
         review.review_id for review in reviews
     }:
         raise ValueError("semantic review IDs mismatch")
-    return {"annotations": [item.model_dump(mode="json") for item in annotations]}
+    return {
+        "annotations": [item.model_dump(mode="json") for item in annotations],
+        "metrics": {
+            **state["metrics"],
+            "semantic_cache": metadata,
+            "cache_hits": len(hits),
+            "cache_misses": len(misses),
+        },
+    }
 
 
 def _aggregate(state: AnalysisState, runtime: Runtime[Context]) -> dict:
@@ -249,10 +290,10 @@ def _datasets(state: AnalysisState) -> dict:
 def _guard(name, node):
     def guarded(state: AnalysisState, runtime: Runtime[Context]) -> dict:
         try:
-            return {**node(state, runtime), "stage": name}
+            update = {**node(state, runtime), "stage": name}
         except Exception:
             # Do not expose provider errors, paths, credentials, or review bodies to the report.
-            return {
+            update = {
                 "stage": name,
                 "status": "partial" if state["reviews"] else "failed",
                 "errors": [
@@ -265,8 +306,34 @@ def _guard(name, node):
                     },
                 ],
             }
+        return _persist(state, update, runtime.context.store)
 
     return guarded
+
+
+def _persist(state: AnalysisState, update: dict, store: RunStore | None) -> dict:
+    if store is None or not store.enabled:
+        return update
+    snapshot = {**state, **update}
+    if snapshot["report"] is not None:
+        snapshot["report"] = {**snapshot["report"], "persisted": True}
+        update["report"] = snapshot["report"]
+    try:
+        store.save_state(snapshot)
+    except (sqlite3.Error, OSError):
+        store.enabled = False
+        warnings = [
+            *snapshot["warnings"],
+            {
+                "code": "storage_failed",
+                "stage": snapshot["stage"],
+                "message": "存储不可用，结果仅保留在当前内存中，请导出报告",
+            },
+        ]
+        update["warnings"] = warnings
+        if snapshot["report"] is not None:
+            update["report"] = {**snapshot["report"], "persisted": False, "warnings": warnings}
+    return update
 
 
 def _finalize(state: AnalysisState) -> dict:
@@ -293,8 +360,8 @@ def _finalize(state: AnalysisState) -> dict:
         "raw_count": state["metrics"].get("raw_count", 0),
         "rejected_counts": state["rejected_counts"],
         "selected_ids": state["selected_ids"],
-        "statistics": state["statistics"],
-        "selection": state["selection"],
+        "statistics": state["statistics"] or None,
+        "selection": state["selection"] or None,
         "metrics": state["metrics"],
         "analyst_result": state["analyst_result"],
         "insights": insight_records(AnalystOutput.model_validate(state["analyst_result"]).insights)
@@ -310,10 +377,11 @@ def _finalize(state: AnalysisState) -> dict:
         "warnings": state["warnings"],
         "errors": state["errors"],
     }
+    report = AnalysisReport.model_validate_json(json.dumps(report)).model_dump(mode="json")
     return {"status": status, "stage": "finalize", "report": report}
 
 
-def build_graph():
+def build_graph(checkpointer=None):
     graph = StateGraph(AnalysisState, context_schema=Context)
     for name, node in [
         ("planner", _planner),
@@ -324,7 +392,7 @@ def build_graph():
         ("visualization", _visualization),
     ]:
         graph.add_node(name, _guard(name, node))
-    graph.add_node("finalize", _finalize)
+    graph.add_node("finalize", _guard("finalize", lambda state, runtime: _finalize(state)))
     graph.add_edge(START, "planner")
     graph.add_conditional_edges("planner", lambda s: "finalize" if s["errors"] else "collect")
     graph.add_conditional_edges(
@@ -338,7 +406,7 @@ def build_graph():
     graph.add_edge("analyst", "visualization")
     graph.add_edge("visualization", "finalize")
     graph.add_edge("finalize", END)
-    return graph.compile()
+    return graph.compile(checkpointer=checkpointer)
 
 
 class AnalysisService:
@@ -354,6 +422,7 @@ class AnalysisService:
         analyst: AnalystAgent | None = None,
         visualization: VisualizationAgent | None = None,
         mode: str = "demo",
+        store: RunStore | None = None,
     ):
         from .demo import DemoSemantic
 
@@ -376,16 +445,21 @@ class AnalysisService:
             analyst,
             visualization,
             mode,
+            store,
         )
         self.graph = build_graph()
+        self._started = False
 
     def run(self, request: AnalysisRequest) -> dict:
-        return self.graph.invoke(_initial(request, self.context.mode), context=self.context)[
-            "report"
-        ]
+        report = None
+        for event in self.stream(request):
+            report = event.get("report", report)
+        if report is None:
+            raise RuntimeError("workflow did not produce a report")
+        return report
 
     @classmethod
-    def real(cls, datasets: Mapping[str, Path]):
+    def real(cls, datasets: Mapping[str, Path], store: RunStore | None = None):
         from gliner2 import GLiNER2  # noqa: F401 - verify local inference dependency
 
         from marketlens.adapters.gliner import SemanticAnalyzer
@@ -403,19 +477,68 @@ class AnalysisService:
             analyst=AnalystAgent(llm),
             visualization=VisualizationAgent(llm),
             mode="real",
+            store=store,
         )
 
     def stream(self, request: AnalysisRequest) -> Iterator[dict]:
-        for state in self.graph.stream(
-            _initial(request, self.context.mode), context=self.context, stream_mode="values"
+        if self._started and any(
+            (self.context.planner, self.context.analyst, self.context.visualization)
         ):
-            event = {
-                "run_id": state["run_id"],
-                "stage": state["stage"],
-                "status": state["status"],
-                "message": ("模拟运行：" if self.context.mode == "demo" else "分析进度：")
-                + state["stage"],
-            }
-            if state["report"] is not None:
-                event["report"] = state["report"]
-            yield event
+            raise ValueError("create a new service for each LLM run")
+        self._started = True
+        from contextlib import ExitStack
+
+        from langgraph.checkpoint.sqlite import SqliteSaver
+
+        state = _initial(request, self.context.mode)
+        with ExitStack() as stack:
+            graph = self.graph
+            store = self.context.store
+            if store and store.enabled:
+                try:
+                    saver = stack.enter_context(
+                        SqliteSaver.from_conn_string(str(store.checkpoint_path))
+                    )
+                    saver.setup()
+                    graph = build_graph(saver)
+                except (sqlite3.Error, OSError):
+                    state["warnings"].append(
+                        {
+                            "code": "checkpoint_unavailable",
+                            "stage": "start",
+                            "message": "工作流检查点不可用，继续内存分析",
+                        }
+                    )
+            config = {"configurable": {"thread_id": state["run_id"]}}
+            try:
+                for current in graph.stream(
+                    state, config=config, context=self.context, stream_mode="values"
+                ):
+                    state = current
+                    yield self._event(state)
+            except sqlite3.Error:
+                # Never replay provider calls after a checkpoint write failure.
+                state["warnings"] = [
+                    *state["warnings"],
+                    {
+                        "code": "checkpoint_failed",
+                        "stage": state["stage"],
+                        "message": "检查点写入失败，保留已完成结果；未自动重试外部调用",
+                    },
+                ]
+                state["status"] = "partial" if state["reviews"] else "failed"
+                state["report"] = None
+                state.update(_persist(state, _finalize(state), store))
+                yield self._event(state)
+
+    def _event(self, state: AnalysisState) -> dict:
+        event = {
+            "run_id": state["run_id"],
+            "stage": state["stage"],
+            "status": state["status"],
+            "message": ("模拟运行：" if self.context.mode == "demo" else "分析进度：")
+            + state["stage"],
+        }
+        if state["report"] is not None:
+            event["report"] = state["report"]
+        return event

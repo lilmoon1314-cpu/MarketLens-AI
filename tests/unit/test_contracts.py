@@ -255,7 +255,7 @@ def test_chart_rejects_invalid_bindings(field, value, examples):
 def test_schema_export_is_valid_and_reproducible(tmp_path):
     export_schemas(tmp_path)
     documents = schema_documents()
-    assert len(documents) == 7
+    assert len(documents) == 8
     committed = Path(__file__).resolve().parents[2] / "docs" / "schemas"
     for name, schema in documents.items():
         Draft202012Validator.check_schema(schema)

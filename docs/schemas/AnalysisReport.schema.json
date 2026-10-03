@@ -1,182 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:marketlens:agent-contracts:1.0",
   "$defs": {
-    "AnalysisReport": {
-      "additionalProperties": false,
-      "properties": {
-        "schema_version": {
-          "const": "1.0",
-          "title": "Schema Version",
-          "type": "string"
-        },
-        "run_id": {
-          "minLength": 1,
-          "title": "Run Id",
-          "type": "string"
-        },
-        "status": {
-          "enum": [
-            "complete",
-            "partial",
-            "insufficient_data",
-            "failed"
-          ],
-          "title": "Status",
-          "type": "string"
-        },
-        "mode": {
-          "enum": [
-            "demo",
-            "real"
-          ],
-          "title": "Mode",
-          "type": "string"
-        },
-        "request": {
-          "$ref": "#/$defs/AnalysisRequest"
-        },
-        "plan": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/PlannerOutput"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "review_count": {
-          "minimum": 0,
-          "title": "Review Count",
-          "type": "integer"
-        },
-        "raw_count": {
-          "minimum": 0,
-          "title": "Raw Count",
-          "type": "integer"
-        },
-        "rejected_counts": {
-          "additionalProperties": {
-            "minimum": 0,
-            "type": "integer"
-          },
-          "title": "Rejected Counts",
-          "type": "object"
-        },
-        "selected_ids": {
-          "items": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "title": "Selected Ids",
-          "type": "array"
-        },
-        "statistics": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Statistics"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "selection": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Selection"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "metrics": {
-          "additionalProperties": {
-            "$ref": "#/$defs/JsonValue"
-          },
-          "title": "Metrics",
-          "type": "object"
-        },
-        "analyst_result": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/AnalystOutput"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "insights": {
-          "items": {
-            "$ref": "#/$defs/ReportInsight"
-          },
-          "title": "Insights",
-          "type": "array"
-        },
-        "visualization": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/VisualizationOutput"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "charts": {
-          "items": {
-            "$ref": "#/$defs/BoundChart"
-          },
-          "title": "Charts",
-          "type": "array"
-        },
-        "warnings": {
-          "items": {
-            "$ref": "#/$defs/Notice"
-          },
-          "title": "Warnings",
-          "type": "array"
-        },
-        "errors": {
-          "items": {
-            "$ref": "#/$defs/Notice"
-          },
-          "title": "Errors",
-          "type": "array"
-        },
-        "persisted": {
-          "default": false,
-          "title": "Persisted",
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "schema_version",
-        "run_id",
-        "status",
-        "mode",
-        "request",
-        "plan",
-        "review_count",
-        "raw_count",
-        "rejected_counts",
-        "selected_ids",
-        "statistics",
-        "selection",
-        "metrics",
-        "analyst_result",
-        "insights",
-        "visualization",
-        "charts",
-        "warnings",
-        "errors"
-      ],
-      "title": "AnalysisReport",
-      "type": "object"
-    },
     "AnalysisRequest": {
       "additionalProperties": false,
       "properties": {
@@ -254,60 +78,6 @@
       "title": "AnalysisRequest",
       "type": "object"
     },
-    "AnalystInput": {
-      "additionalProperties": false,
-      "properties": {
-        "product": {
-          "minLength": 1,
-          "title": "Product",
-          "type": "string"
-        },
-        "goal": {
-          "minLength": 1,
-          "title": "Goal",
-          "type": "string"
-        },
-        "dimensions": {
-          "items": {
-            "enum": [
-              "strength",
-              "weakness",
-              "pain_point",
-              "feature_request"
-            ],
-            "type": "string"
-          },
-          "title": "Dimensions",
-          "type": "array",
-          "uniqueItems": true
-        },
-        "report_language": {
-          "enum": [
-            "zh-CN",
-            "en"
-          ],
-          "title": "Report Language",
-          "type": "string"
-        },
-        "reviews": {
-          "items": {
-            "$ref": "#/$defs/AnnotatedReview"
-          },
-          "minItems": 1,
-          "title": "Reviews",
-          "type": "array"
-        }
-      },
-      "required": [
-        "product",
-        "goal",
-        "dimensions",
-        "report_language",
-        "reviews"
-      ],
-      "title": "AnalystInput",
-      "type": "object"
-    },
     "AnalystOutput": {
       "additionalProperties": false,
       "properties": {
@@ -339,23 +109,6 @@
         "limitations"
       ],
       "title": "AnalystOutput",
-      "type": "object"
-    },
-    "AnnotatedReview": {
-      "additionalProperties": false,
-      "properties": {
-        "review": {
-          "$ref": "#/$defs/Review"
-        },
-        "semantic": {
-          "$ref": "#/$defs/SemanticReview"
-        }
-      },
-      "required": [
-        "review",
-        "semantic"
-      ],
-      "title": "AnnotatedReview",
       "type": "object"
     },
     "BoundChart": {
@@ -483,67 +236,6 @@
       "title": "ChartSpec",
       "type": "object"
     },
-    "Confidence": {
-      "additionalProperties": false,
-      "properties": {
-        "sentiment": {
-          "anyOf": [
-            {
-              "maximum": 1,
-              "minimum": 0,
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Sentiment"
-        },
-        "feedback_value": {
-          "anyOf": [
-            {
-              "maximum": 1,
-              "minimum": 0,
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Feedback Value"
-        },
-        "topics": {
-          "additionalProperties": {
-            "maximum": 1,
-            "minimum": 0,
-            "type": "number"
-          },
-          "propertyNames": {
-            "enum": [
-              "pricing",
-              "performance",
-              "reliability",
-              "usability",
-              "features",
-              "support",
-              "quality",
-              "delivery",
-              "packaging",
-              "other"
-            ]
-          },
-          "title": "Topics",
-          "type": "object"
-        }
-      },
-      "required": [
-        "sentiment",
-        "feedback_value",
-        "topics"
-      ],
-      "title": "Confidence",
-      "type": "object"
-    },
     "Insight": {
       "additionalProperties": false,
       "properties": {
@@ -603,38 +295,6 @@
       "type": "object"
     },
     "JsonValue": {},
-    "MetricDescriptor": {
-      "additionalProperties": false,
-      "properties": {
-        "dataset": {
-          "enum": [
-            "sentiment_distribution",
-            "topic_distribution",
-            "feedback_value_distribution",
-            "insight_evidence_counts"
-          ],
-          "title": "Dataset",
-          "type": "string"
-        },
-        "label_field": {
-          "const": "label",
-          "title": "Label Field",
-          "type": "string"
-        },
-        "value_field": {
-          "const": "count",
-          "title": "Value Field",
-          "type": "string"
-        }
-      },
-      "required": [
-        "dataset",
-        "label_field",
-        "value_field"
-      ],
-      "title": "MetricDescriptor",
-      "type": "object"
-    },
     "Notice": {
       "additionalProperties": false,
       "properties": {
@@ -685,32 +345,6 @@
         "message"
       ],
       "title": "Notice",
-      "type": "object"
-    },
-    "PlannerInput": {
-      "additionalProperties": false,
-      "properties": {
-        "request": {
-          "$ref": "#/$defs/AnalysisRequest"
-        },
-        "available_sources": {
-          "items": {
-            "enum": [
-              "local",
-              "taobao"
-            ],
-            "type": "string"
-          },
-          "title": "Available Sources",
-          "type": "array",
-          "uniqueItems": true
-        }
-      },
-      "required": [
-        "request",
-        "available_sources"
-      ],
-      "title": "PlannerInput",
       "type": "object"
     },
     "PlannerOutput": {
@@ -835,86 +469,6 @@
       "title": "ReportInsight",
       "type": "object"
     },
-    "Review": {
-      "additionalProperties": false,
-      "properties": {
-        "review_id": {
-          "minLength": 1,
-          "title": "Review Id",
-          "type": "string"
-        },
-        "text": {
-          "minLength": 1,
-          "title": "Text",
-          "type": "string"
-        },
-        "source": {
-          "enum": [
-            "local",
-            "taobao"
-          ],
-          "title": "Source",
-          "type": "string"
-        },
-        "source_id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Source Id"
-        },
-        "product_id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Product Id"
-        },
-        "url": {
-          "anyOf": [
-            {
-              "format": "uri",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Url"
-        },
-        "time": {
-          "anyOf": [
-            {
-              "format": "date-time",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Time"
-        }
-      },
-      "required": [
-        "review_id",
-        "text",
-        "source",
-        "source_id",
-        "product_id",
-        "url",
-        "time"
-      ],
-      "title": "Review",
-      "type": "object"
-    },
     "Selection": {
       "additionalProperties": false,
       "properties": {
@@ -1011,79 +565,6 @@
         "threshold"
       ],
       "title": "Selection",
-      "type": "object"
-    },
-    "SemanticReview": {
-      "additionalProperties": false,
-      "properties": {
-        "review_id": {
-          "minLength": 1,
-          "title": "Review Id",
-          "type": "string"
-        },
-        "sentiment": {
-          "enum": [
-            "positive",
-            "negative",
-            "neutral",
-            "mixed",
-            "unknown"
-          ],
-          "title": "Sentiment",
-          "type": "string"
-        },
-        "topics": {
-          "items": {
-            "enum": [
-              "pricing",
-              "performance",
-              "reliability",
-              "usability",
-              "features",
-              "support",
-              "quality",
-              "delivery",
-              "packaging",
-              "other"
-            ],
-            "type": "string"
-          },
-          "title": "Topics",
-          "type": "array",
-          "uniqueItems": true
-        },
-        "feedback_value": {
-          "enum": [
-            "actionable",
-            "non_actionable",
-            "spam",
-            "unknown"
-          ],
-          "title": "Feedback Value",
-          "type": "string"
-        },
-        "confidence": {
-          "$ref": "#/$defs/Confidence"
-        },
-        "processed": {
-          "title": "Processed",
-          "type": "boolean"
-        },
-        "truncated": {
-          "title": "Truncated",
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "review_id",
-        "sentiment",
-        "topics",
-        "feedback_value",
-        "confidence",
-        "processed",
-        "truncated"
-      ],
-      "title": "SemanticReview",
       "type": "object"
     },
     "Statistics": {
@@ -1207,45 +688,6 @@
       "title": "Statistics",
       "type": "object"
     },
-    "VisualizationInput": {
-      "additionalProperties": false,
-      "properties": {
-        "product": {
-          "title": "Product",
-          "type": "string"
-        },
-        "report_language": {
-          "enum": [
-            "zh-CN",
-            "en"
-          ],
-          "title": "Report Language",
-          "type": "string"
-        },
-        "available_metrics": {
-          "items": {
-            "$ref": "#/$defs/MetricDescriptor"
-          },
-          "title": "Available Metrics",
-          "type": "array"
-        },
-        "insight_titles": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Insight Titles",
-          "type": "array"
-        }
-      },
-      "required": [
-        "product",
-        "report_language",
-        "available_metrics",
-        "insight_titles"
-      ],
-      "title": "VisualizationInput",
-      "type": "object"
-    },
     "VisualizationOutput": {
       "additionalProperties": false,
       "properties": {
@@ -1265,5 +707,178 @@
       "title": "VisualizationOutput",
       "type": "object"
     }
-  }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "run_id": {
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "complete",
+        "partial",
+        "insufficient_data",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "mode": {
+      "enum": [
+        "demo",
+        "real"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "request": {
+      "$ref": "#/$defs/AnalysisRequest"
+    },
+    "plan": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PlannerOutput"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "review_count": {
+      "minimum": 0,
+      "title": "Review Count",
+      "type": "integer"
+    },
+    "raw_count": {
+      "minimum": 0,
+      "title": "Raw Count",
+      "type": "integer"
+    },
+    "rejected_counts": {
+      "additionalProperties": {
+        "minimum": 0,
+        "type": "integer"
+      },
+      "title": "Rejected Counts",
+      "type": "object"
+    },
+    "selected_ids": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Selected Ids",
+      "type": "array"
+    },
+    "statistics": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Statistics"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Selection"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "metrics": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Metrics",
+      "type": "object"
+    },
+    "analyst_result": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AnalystOutput"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "insights": {
+      "items": {
+        "$ref": "#/$defs/ReportInsight"
+      },
+      "title": "Insights",
+      "type": "array"
+    },
+    "visualization": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/VisualizationOutput"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "charts": {
+      "items": {
+        "$ref": "#/$defs/BoundChart"
+      },
+      "title": "Charts",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "$ref": "#/$defs/Notice"
+      },
+      "title": "Warnings",
+      "type": "array"
+    },
+    "errors": {
+      "items": {
+        "$ref": "#/$defs/Notice"
+      },
+      "title": "Errors",
+      "type": "array"
+    },
+    "persisted": {
+      "default": false,
+      "title": "Persisted",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "schema_version",
+    "run_id",
+    "status",
+    "mode",
+    "request",
+    "plan",
+    "review_count",
+    "raw_count",
+    "rejected_counts",
+    "selected_ids",
+    "statistics",
+    "selection",
+    "metrics",
+    "analyst_result",
+    "insights",
+    "visualization",
+    "charts",
+    "warnings",
+    "errors"
+  ],
+  "title": "AnalysisReport",
+  "type": "object"
 }

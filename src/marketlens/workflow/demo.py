@@ -15,6 +15,9 @@ from marketlens.contracts import (
 class DemoSemantic:
     """Fixed semantic fixture; no model quality claim."""
 
+    def cache_metadata(self) -> dict:
+        return {"model": "demo", "revision": "1.0"}
+
     def analyze(self, reviews):
         return [
             convert(

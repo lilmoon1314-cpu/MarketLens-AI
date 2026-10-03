@@ -177,6 +177,21 @@ class SemanticAnalyzer:
         self.config = config or GLiNERConfig()
         self.backend = backend
 
+    def cache_metadata(self) -> dict | None:
+        if self.backend is not None:
+            return None  # Injected backends must not share production model cache.
+        return {
+            "model": MODEL_ID,
+            "revision": MODEL_REVISION,
+            "parser_version": "1.0",
+            "schema_version": "1.0",
+            "splitter": self.config.splitter,
+            "labels": self.config.label_language,
+            "batch_size": self.config.batch_size,
+            "device": "cpu",
+            "thresholds": {"sentiment": 0.5, "topics": 0.4, "value": 0.5},
+        }
+
     def analyze(self, reviews: list[Review]) -> list[SemanticReview]:
         if not reviews:
             return []

@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import sqlite3
 import sys
 from pathlib import Path
 
@@ -18,6 +19,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--product", required=True)
     parser.add_argument("--goal", required=True)
     parser.add_argument("--max-reviews", type=int, default=1000)
+    parser.add_argument("--data-dir", type=Path, default=Path(".local"))
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--demo", action="store_true", help="明确使用模拟Agent")
     mode.add_argument(
@@ -25,6 +27,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     try:
+        from marketlens.storage.sqlite import RunStore
         from marketlens.workflow.demo import DemoAgents
         from marketlens.workflow.service import AnalysisService
 
@@ -38,10 +41,26 @@ def main(argv: list[str] | None = None) -> int:
             report_language="zh-CN",
         )
         datasets = {"cli-input": args.input}
+        storage_unavailable = False
+        try:
+            store = RunStore(args.data_dir / "marketlens.sqlite3")
+        except (sqlite3.Error, OSError):
+            store = None
+            storage_unavailable = True
         service = (
-            AnalysisService.real(datasets) if args.real else AnalysisService(datasets, DemoAgents())
+            AnalysisService.real(datasets, store=store)
+            if args.real
+            else AnalysisService(datasets, DemoAgents(), store=store)
         )
         report = service.run(request)
+        if storage_unavailable:
+            report["warnings"].append(
+                {
+                    "code": "storage_unavailable",
+                    "stage": "start",
+                    "message": "存储初始化失败，请导出当前报告",
+                }
+            )
     except ImportError:
         print("请安装对应依赖；真实模式需workflow、llm、nlp extras。", file=sys.stderr)
         return 2

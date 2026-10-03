@@ -16,11 +16,13 @@ from .models import (
     VisualizationInput,
     VisualizationOutput,
 )
+from .report import AnalysisReport
 from .state import AnalysisState
 from .statistics import Statistics
 
 __all__ = [
     "AnalysisRequest",
+    "AnalysisReport",
     "AnalysisState",
     "AnalystInput",
     "AnalystOutput",

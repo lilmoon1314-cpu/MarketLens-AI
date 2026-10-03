@@ -140,3 +140,9 @@ uv run --locked --extra workflow --extra llm --extra nlp marketlens analyze --re
 - [贡献指南](AGENTS.md)：代码风格与交付约定。
 
 每次只实现一个功能，完成必要验证后更新进度并提交、推送。frontend视觉验收截图保存在 `test/pic_test/`；当前功能无前端页面，不需要截图。
+
+## 本地运行记录（F11）
+
+CLI 默认保存到 `.local/marketlens.sqlite3`，工作流检查点在同目录独立文件；用 `--data-dir PATH` 更改运行数据目录。`report.persisted` 表示最终报告事务是否成功；存储故障时请保存 stdout JSON。运行数据、评论和浏览器会话均不可提交。
+
+`RunStore.history()` 查看最近运行，`report(run_id)` 获取强类型报告，`evidence(run_id, ids, for_llm=True)` 受固定入选白名单限制，`delete_run(run_id)` 删除快照、证据、报告、检查点及不再引用的缓存。缓存仅用于相同版本的语义推理，LLM每次重新运行。

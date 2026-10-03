@@ -3,12 +3,23 @@
 ## 当前状态
 
 - 日期：2026-10-03。
-- 阶段：F00开发环境与项目骨架、F01契约、F02本地导入完成；下一项F03离线工作流。
+- 阶段：F00开发环境与项目骨架、F01契约、F02导入、F03离线工作流完成；下一项F04语义适配器。
 - PRD基线：`MarketLens_AI_PRD_v0.1.md`正文v0.2。
 - 本地基线：Python3.12、uv锁文件、src布局、pytest/Ruff、基础CI；Git main已初始化。
 - 远端目标：`https://github.com/lilmoon1314-cpu/MarketLens-AI.git`。
 - 远端核实：GitHub连接器确认空仓库、默认main、具有push权限；扩展网络Git只读连接成功。
-- 推送状态：F00已发布，交付记录提交fbdd8863f51bcd344f73d753613439dc8ed66e9d；F01已发布8480f77，Windows/Ubuntu CI通过；F02本提交包含该任务，发布pending。
+- 推送状态：F00已发布，交付记录提交fbdd8863f51bcd344f73d753613439dc8ed66e9d；F01已发布8480f77，Windows/Ubuntu CI通过；F02已发布b802c27，CI 37092971430成功；F03本提交包含该任务，发布pending。
+
+## F03 — LangGraph离线闭环
+
+- 日期：2026-10-03；状态：实现及本地验证完成，提交时发布pending。
+- 交付：真实StateGraph与context依赖注入、三个契约化fake Agent、空数据/低样本/失败条件边、统一AnalysisService.run/stream、显式--demo CLI。
+- 结果：正常demo complete；空数据insufficient_data；低于4条跳过Analyst并partial；节点异常保留已导入评论，输出脱敏错误。每个运行独立UUID，State不存模型/文件句柄。
+- 验证：全量离线pytest 90 passed；含实际图编排、进度顺序、数据隔离、三Agent失败、假证据/越权来源、CLI退出码和JSON报告；Ruff lint/format、lock检查、wheel/sdist通过。
+- 依赖：安装锁定workflow extra，版本LangGraph1.2.12；生产基础依赖未扩张。CI安装workflow执行集成测试；没有模型下载或API调用。
+- 边界：模拟只取首条证据且N>=4，不实现F06正式分层/token路由；模拟unknown不代表语义处理。ChartSpec仅演示传递，不表示统计或UI已存在。真实Report类型/持久化仍F11。
+- 文档：README命令/状态/局限，AGENTS与计划同步；无前端截图。
+- 后续：发布本功能后自动推进F04。
 
 ## F02 — 本地评论导入
 

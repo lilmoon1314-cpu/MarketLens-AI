@@ -10,6 +10,9 @@ readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = ["pydantic>=2.10,<3"]
 
+[project.scripts]
+marketlens = "marketlens.cli:main"
+
 [project.optional-dependencies]
 workflow = ["langgraph>=1.0,<2", "langgraph-checkpoint-sqlite>=3,<4"]
 llm = ["langchain-openai>=1.0,<2"]

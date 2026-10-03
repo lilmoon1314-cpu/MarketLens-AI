@@ -2,7 +2,7 @@
 
 中文优先的商品用户反馈分析项目，计划使用 LangGraph、GLiNER2、多阶段 LLM 分析与 Streamlit 展示淘宝商品评论中的问题和需求。
 
-目前已实现 **F00：开发环境与项目骨架**、**F01：数据与 Agent 契约**、**F02：本地评论导入**。尚无淘宝采集、分析命令或 Dashboard；这些功能按开发计划逐项实现。
+目前已实现 **F00：开发环境与项目骨架**、**F01：数据与 Agent 契约**、**F02：本地评论导入**。**F03：LangGraph离线闭环**也已完成，提供显式demo命令。淘宝采集、真实模型分析和Dashboard继续按计划实现。
 
 ## 本地开发
 
@@ -35,7 +35,19 @@ uv run --locked pytest tests/unit/test_contracts.py -q
 
 `marketlens.tools.collection.load_local_reviews(dataset_id, datasets, limit=1000)` 只读取调用方注册的 `dict[str, Path]`。CSV 必须有唯一列名和 `text` 列；JSONL 每行一个对象。文件为 UTF-8（可带 BOM），上限 10 MiB。可选字段为 `source_id`、`product_id`、`url`、`time`；未知值留空，日期必须包含时区，导入时转为 UTC。来源统一为 `local`，作者及额外列不进入业务对象。
 
-正文做 NFKC 与空白归一化；同商品全文或相同来源 ID 保留第一条。无来源 ID 时用来源、商品 ID、正文计算 SHA256。结果包含 `reviews`、`raw_count`、`rejected_counts`；非法行、空文本、重复及超量分别计数，最多保留 1000 条。CSV 引号损坏导致行边界不可靠时拒绝整个文件；JSONL 语法错误逐行隔离。CLI 在 F03 提供。
+正文做 NFKC 与空白归一化；同商品全文或相同来源 ID 保留第一条。无来源 ID 时用来源、商品 ID、正文计算 SHA256。结果包含 `reviews`、`raw_count`、`rejected_counts`；非法行、空文本、重复及超量分别计数，最多保留 1000 条。CSV 引号损坏导致行边界不可靠时拒绝整个文件；JSONL 语法错误逐行隔离。CLI用法见下节。
+
+## 离线工作流（模拟模式）
+
+```powershell
+uv sync --locked --group dev --extra workflow
+uv run --locked --extra workflow marketlens analyze --demo --input reviews.csv --product "示例商品" --goal "了解用户反馈"
+uv run --locked --extra workflow pytest -q
+```
+
+CLI将输入文件注册到本次运行，再调用统一的 `AnalysisService`。`run(request)` 返回JSON报告；`stream(request)` 发出阶段进度，末事件包含报告。三个模拟Agent只验证契约与图编排，不产生真实模型分析。没有数据时返回 `insufficient_data`；坏文件/节点失败保留错误状态；少于4条时不调用模拟Analyst。模拟证据最多1条且严格低于30%，正式分层与token预算在F06实现。CLI成功/部分结果退出0，失败退出1，参数或依赖错误退出2。
+
+运行时依赖通过LangGraph context注入，State只存可序列化数据。图API参考[LangGraph官方文档](https://docs.langchain.com/oss/python/langgraph/graph-api)。没有持久化、真实语义标注、真实LLM或可渲染统计数据；模拟ChartSpec仅验证输出传递。
 
 ## 可选依赖
 

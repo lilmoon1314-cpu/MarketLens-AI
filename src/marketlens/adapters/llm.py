@@ -97,27 +97,46 @@ class StructuredLLM:
         usage["total_tokens"] = usage["input_tokens"] + usage["output_tokens"]
         return usage
 
-    def generate[T: BaseModel](
-        self, output_type: type[T], system: str, payload: BaseModel | dict
-    ) -> T:
-        schema = output_type.model_json_schema()
+    @staticmethod
+    def _messages(
+        output_type: type[BaseModel], system: str, payload: BaseModel | dict
+    ) -> list[dict]:
         data = payload.model_dump(mode="json") if isinstance(payload, BaseModel) else payload
-        messages = [
+        return [
             {
                 "role": "system",
                 "content": system
                 + "\n只返回一个JSON对象，必须符合Schema：\n"
-                + json.dumps(schema, ensure_ascii=False, separators=(",", ":")),
+                + json.dumps(
+                    output_type.model_json_schema(), ensure_ascii=False, separators=(",", ":")
+                ),
             },
             {
                 "role": "user",
                 "content": json.dumps(data, ensure_ascii=False, separators=(",", ":")),
             },
         ]
+
+    def _estimate(self, messages: list[dict], schema: dict) -> int:
+        size = len(json.dumps(messages, ensure_ascii=False).encode("utf-8")) + 64
+        if self.config.structured_method == "json_schema":
+            size += len(json.dumps(schema, ensure_ascii=False).encode("utf-8"))
+        return size
+
+    def estimate_input(
+        self, output_type: type[BaseModel], system: str, payload: BaseModel | dict
+    ) -> int:
+        return self._estimate(
+            self._messages(output_type, system, payload), output_type.model_json_schema()
+        )
+
+    def generate[T: BaseModel](
+        self, output_type: type[T], system: str, payload: BaseModel | dict
+    ) -> T:
+        schema = output_type.model_json_schema()
+        messages = self._messages(output_type, system, payload)
         for attempt in range(2):
-            estimated = len(json.dumps(messages, ensure_ascii=False).encode("utf-8")) + 64
-            if self.config.structured_method == "json_schema":
-                estimated += len(json.dumps(schema, ensure_ascii=False).encode("utf-8"))
+            estimated = self._estimate(messages, schema)
             if estimated > self.config.effective_input_tokens:
                 raise LLMError("input_budget_exceeded")
             reservation = estimated + self.config.output_tokens

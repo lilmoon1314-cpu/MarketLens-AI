@@ -143,6 +143,45 @@ def test_planner_fallback_continues_collection(tmp_path, analysis_request):
     assert report["status"] == "partial"
 
 
+def test_analyst_component_uses_only_selected_ids(tmp_path, analysis_request):
+    from marketlens.adapters.llm import Response, StructuredLLM
+    from marketlens.agents.analyst import AnalystAgent
+    from marketlens.config import LLMConfig
+
+    class Backend:
+        def complete(self, messages, schema):
+            payload = json.loads(messages[1]["content"])
+            evidence = [item["review"]["review_id"] for item in payload["reviews"]]
+            return Response(
+                json.dumps(
+                    {
+                        "summary": "样本说明",
+                        "insights": [
+                            {
+                                "kind": "pain_point",
+                                "title": "示例问题",
+                                "summary": "样本证据",
+                                "evidence_ids": evidence,
+                                "hypothesis": None,
+                            }
+                        ],
+                        "limitations": [],
+                    }
+                ),
+                100,
+                50,
+            )
+
+    llm = StructuredLLM(LLMConfig("https://provider.example/v1", "fixture", "sanitized"), Backend())
+    report = AnalysisService(dataset(tmp_path, 10), DemoAgents(), analyst=AnalystAgent(llm)).run(
+        analysis_request
+    )
+    assert set(report["metrics"]["analyst_sent_ids"]) == set(report["selected_ids"])
+    assert len(report["selected_ids"]) == 2
+    assert report["insights"][0]["evidence_count"] == 2
+    assert report["metrics"]["llm"]["charged_tokens"] == 150
+
+
 def test_agent_cannot_expand_source_or_evidence(tmp_path, analysis_request):
     class WrongSource(DemoAgents):
         def planner(self, data):

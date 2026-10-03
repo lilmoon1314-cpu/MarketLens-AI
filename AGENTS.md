@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-MarketLens AI is a Chinese-first product feedback analysis project. `MarketLens_AI_PRD_v0.1.md` contains the v0.2 PRD; its original filename is retained. F00 provides development checks; F01 adds contracts, F02 local import, and F03 an explicit demo graph. Taobao collection and analysis remain planned.
+MarketLens AI is a Chinese-first product feedback analysis project. `MarketLens_AI_PRD_v0.1.md` contains the v0.2 PRD; its original filename is retained. Contracts, local import, LangGraph, semantic adaptation, statistics, routing, and Planner/Analyst are implemented through F09. Taobao collection and Dashboard remain planned.
 
 Python modules live under `src/marketlens/`, automated tests under `tests/`, and design/progress documents under `docs/`. Keep future collection, NLP filtering, orchestration, and visualization separate. Use sanitized fixtures under `tests/fixtures/`; runtime data and browser sessions belong in ignored `.local/`.
 

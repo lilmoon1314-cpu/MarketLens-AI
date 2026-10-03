@@ -10,6 +10,7 @@ from uuid import uuid4
 from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime
 
+from marketlens.agents.analyst import AnalystAgent
 from marketlens.agents.planner import PlannerAgent
 from marketlens.contracts import (
     AnalysisRequest,
@@ -25,6 +26,7 @@ from marketlens.contracts import (
     VisualizationOutput,
 )
 from marketlens.tools.collection import load_local_reviews
+from marketlens.tools.evidence import insight_records
 from marketlens.tools.routing import RoutingBudget, select_reviews, selected_evidence
 from marketlens.tools.statistics import aggregate_statistics
 
@@ -46,6 +48,7 @@ class Context:
     semantic: SemanticBackend
     budget: RoutingBudget
     planner: PlannerAgent | None
+    analyst: AnalystAgent | None
 
 
 def _initial(request: AnalysisRequest) -> AnalysisState:
@@ -120,6 +123,20 @@ def _analyst(state: AnalysisState, runtime: Runtime[Context]) -> dict:
             for review in reviews
         ],
     )
+    if runtime.context.analyst is not None:
+        agent = runtime.context.analyst
+        result = agent.analyze(data, state["selection"]["batches"])
+        return {
+            "analyst_result": result.output.model_dump(mode="json"),
+            "warnings": [*state["warnings"], *result.warnings],
+            "status": "partial" if result.warnings else state["status"],
+            "metrics": {
+                **state["metrics"],
+                "analyst_mode": "real",
+                "analyst_sent_ids": result.sent_ids,
+                "llm": agent.llm.metrics(),
+            },
+        }
     output = runtime.context.agents.analyst(data)
     output = AnalystOutput.model_validate(output.model_dump())
     if any(
@@ -153,8 +170,8 @@ def _aggregate(state: AnalysisState, runtime: Runtime[Context]) -> dict:
         reviews, annotations, state["metrics"]["raw_count"], state["rejected_counts"]
     )
     budget = runtime.context.budget
-    if runtime.context.planner is not None:
-        llm = runtime.context.planner.llm
+    if runtime.context.planner is not None or runtime.context.analyst is not None:
+        llm = (runtime.context.planner or runtime.context.analyst).llm
         budget = replace(
             budget,
             remaining_run_tokens=min(budget.remaining_run_tokens, llm.remaining_tokens),
@@ -232,6 +249,9 @@ def _finalize(state: AnalysisState) -> dict:
         "selection": state["selection"],
         "metrics": state["metrics"],
         "analyst_result": state["analyst_result"],
+        "insights": insight_records(AnalystOutput.model_validate(state["analyst_result"]).insights)
+        if state["analyst_result"]
+        else [],
         "visualization": state["visualization"],
         "warnings": state["warnings"],
         "errors": state["errors"],
@@ -276,8 +296,12 @@ class AnalysisService:
         semantic: SemanticBackend | None = None,
         budget: RoutingBudget | None = None,
         planner: PlannerAgent | None = None,
+        analyst: AnalystAgent | None = None,
     ):
         from .demo import DemoSemantic
+
+        if planner is not None and analyst is not None and planner.llm is not analyst.llm:
+            raise ValueError("Planner and Analyst must share one per-run LLM budget")
 
         self.context = Context(
             dict(datasets),
@@ -285,6 +309,7 @@ class AnalysisService:
             semantic if semantic is not None else DemoSemantic(),
             budget or RoutingBudget(),
             planner,
+            analyst,
         )
         self.graph = build_graph()
 

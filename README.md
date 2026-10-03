@@ -84,7 +84,7 @@ uv run --locked --extra workflow --extra nlp pytest tests/integration/test_gline
 
 `RoutingBudget`限制每批8000输入tokens（预留2000提示词/Schema）、2000输出tokens、20条和运行剩余60000 tokens。无tokenizer时按完整评论与标注JSON的UTF-8字节保守估算，报告明确estimated；过长评论整条跳过，保留原文，不能任意切证据。实际usage/重试费用已由F07累计，Planner等先前消耗须从remaining扣除。结果包含固定selected_ids、batches及未选计数；`selected_evidence`拒绝白名单外ID。
 
-图现为Planner→导入→语义→统计/路由→有预算时Analyst→Visualization→报告。真实Analyst批次与合并在F09实现，当前三个Agent为demo，不能用于真实API；无候选时输出partial统计。
+图现为Planner→导入→语义→统计/路由→有预算时Analyst→Visualization→报告。真实Analyst批次与合并已在F09实现，CLI仍demo，真实组件可通过服务显式注入；无候选时输出partial统计。
 
 ## 配置
 
@@ -100,13 +100,21 @@ uv run --locked --extra workflow --extra llm pytest tests/integration/test_llm_s
 
 显式live_api会访问已配置服务并产生用量；可用`MARKETLENS_ENV_FILE`指定配置文件。`StructuredLLM.generate(OutputContract, system, payload)`通过ChatOpenAI请求JSON，随后用Pydantic严格校验。默认json_mode兼容JSON对象接口，可显式设json_schema；不自动更换provider或输出模式。超时45秒，SDK重试关闭，临时网络/429/5xx或非法JSON最多应用层重试一次；永久错误不重试，错误信息不含原始服务异常。
 
-每次调用前保守估计完整消息/Schema字节并预留输出，检查context/input/run上限；重试也收费并计数。服务返回有效usage时记录reported，无usage/网络失败保留estimated_reserved；不得将估计当精确账单。每次运行创建独立适配器，`remaining_tokens`供后续路由使用。实际服务需遵循标准Chat Completions字段，见[ChatOpenAI官方说明](https://docs.langchain.com/oss/python/integrations/chat/openai)。当前适配器独立可用，真实Planner已在F08接入；Analyst与Visualization继续F09/F10。
+每次调用前保守估计完整消息/Schema字节并预留输出，检查context/input/run上限；重试也收费并计数。服务返回有效usage时记录reported，无usage/网络失败保留estimated_reserved；不得将估计当精确账单。每次运行创建独立适配器，`remaining_tokens`供后续路由使用。实际服务需遵循标准Chat Completions字段，见[ChatOpenAI官方说明](https://docs.langchain.com/oss/python/integrations/chat/openai)。当前适配器独立可用，真实Planner已在F08接入；真实Analyst已在F09接入，Visualization继续F10。
 
 ## Research Planner
 
 `PlannerAgent(llm).plan(PlannerInput)`返回计划与warnings；只允许请求来源和可用来源的交集。网络/Schema/越权失败使用产品名关键词和四个默认维度，记录planner_fallback；空交集直接失败，不虚构数据来源。提示词版本在`marketlens.prompts.planner`。
 
 可通过`AnalysisService(..., planner=PlannerAgent(llm))`接入真实Planner；同一运行共享StructuredLLM账本，路由扣除Planner实测/预留消耗，遵守provider context/input/output限制。每个真实运行创建新的LLM/Planner实例。CLI仍仅demo，其余Agent尚未完成真实接入；混合流程仍标demo，Planner模式及usage单独记录。
+
+## Review Analyst与证据
+
+`AnalystAgent(llm).analyze(AnalystInput, batches)`只接收路由选定评论，batches必须完整且不重复地划分该集合。按实际完整消息/Schema容量细分，每批最多20条；无法容纳的长评论整条跳过并记录warning。批次失败保留其他批结果，合并阶段只接收有效洞察，不能增加原文或评论ID。
+
+每批只允许该批证据，合并只允许先前有效洞察的证据。含非法引用的洞察整体删除，摘要由确定性模板重建，避免残留无证据结论。合并失败用按kind/规范化title去重的结果；证据集合取并集，程序生成稳定insight_id与去重evidence_count。不同洞察可能共享证据，这些计数不能相加当作独立用户数。
+
+`AnalysisService(..., planner=PlannerAgent(llm), analyst=AnalystAgent(llm))`要求共享同一运行的LLM实例；报告包含程序洞察计数、实际尝试送入的analyst_sent_ids、warnings和累计usage。部分失败标partial。提示词位于`prompts/analyst.py`；抽样洞察不代表总体发生率。CLI/Visualization当前仍demo，下一项F10完成真实图表配置与完整模式。
 
 ## 测试约定
 

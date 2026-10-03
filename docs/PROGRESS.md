@@ -3,12 +3,23 @@
 ## 当前状态
 
 - 日期：2026-10-03。
-- 阶段：F00开发环境与项目骨架、F01契约、F02导入、F03离线工作流完成；F04语义适配器完成；F05聚合统计完成；F06预算路由完成；F07 LLM适配器完成；F08 Planner接入完成；下一项F09 Analyst与证据。
+- 阶段：F00开发环境与项目骨架、F01契约、F02导入、F03离线工作流完成；F04语义适配器完成；F05聚合统计完成；F06预算路由完成；F07 LLM适配器完成；F08 Planner接入完成；F09 Analyst与证据完成；下一项F10 Visualization。
 - PRD基线：`MarketLens_AI_PRD_v0.1.md`正文v0.2。
 - 本地基线：Python3.12、uv锁文件、src布局、pytest/Ruff、基础CI；Git main已初始化。
 - 远端目标：`https://github.com/lilmoon1314-cpu/MarketLens-AI.git`。
 - 远端核实：GitHub连接器确认空仓库、默认main、具有push权限；扩展网络Git只读连接成功。
-- 推送状态：F00已发布，交付记录提交fbdd8863f51bcd344f73d753613439dc8ed66e9d；F01已发布8480f77，Windows/Ubuntu CI通过；F02已发布b802c27，CI 37092971430成功；F03已发布8ba1671，CI 37093433646成功；F04已发布17bc94a；F05已发布3476a9d；F06已发布dca80d2；F07已发布0f3f33b，CI 37095966234成功；F08本提交包含该任务，发布pending。
+- 推送状态：F00已发布，交付记录提交fbdd8863f51bcd344f73d753613439dc8ed66e9d；F01已发布8480f77，Windows/Ubuntu CI通过；F02已发布b802c27，CI 37092971430成功；F03已发布8ba1671，CI 37093433646成功；F04已发布17bc94a；F05已发布3476a9d；F06已发布dca80d2；F07已发布0f3f33b，CI 37095966234成功；F08已发布13f389d，CI 37096431061成功；F09本提交包含该任务，发布pending。
+
+## F09 — Review Analyst与证据
+
+- 日期：2026-10-03；状态：实现及本地/真实API验证完成，提交时发布pending。
+- 交付：版本化中文batch/merge提示词、入选集合分批与实际Schema消息容量细分、失败partial恢复、合并fallback、证据白名单、同义标题确定性去重、程序insight_id/evidence_count。
+- 安全边界：批次必须划分固定入选集合，单批引用只能本批；合并只引用已验证洞察证据。非法引用整条删除，摘要重建；无证据摘要也重建。长评论不截证据，预算不足不调用；共享Planner/Analyst运行账本。
+- 图：支持真实Analyst注入，记录实际尝试送入的独立ID、完整usage、程序计数；warnings导致partial。demo依然显式，真实Visualization为下一项。
+- 验证：离线pytest 184 passed、5外部检查排除；批次/合并、假引用、部分失败、重叠证据、稳定ID、输入细分、长正文、零预算、越权批次、实际图白名单/计数测试通过。
+- 真实验证：首个Analyst检查失败，未保存原响应，不能确定其具体原因；脱敏诊断复测输出合法且一次调用成功（833输入/1486输出，2319 reported tokens）。将smoke改为10条开发样例入选2条，再执行真实检查1 passed（13.05秒），引用/程序计数通过。保留首次失败记录，不宣称稳定性/质量达标。
+- 质量：Ruff/lock/打包通过；密钥扫描无泄漏，.env继续忽略；无前端截图。
+- 后续：发布后自动推进F10，限制图表字段/数据集并接入完整真实模式。
 
 ## F08 — Research Planner接入
 

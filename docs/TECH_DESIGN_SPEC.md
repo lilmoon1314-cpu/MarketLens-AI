@@ -1,6 +1,6 @@
 # MarketLens AI — Tech Design Spec
 
-日期：2026-10-02。状态：F00开发环境、F01数据与Agent契约已实现，后续业务尚未实现。依据：`MarketLens_AI_PRD_v0.1.md` **正文 v0.2**；保留原文件，不以文件名判断版本。
+日期：2026-10-02。状态：F00—F04已实现，详见PROGRESS；真实分析流程仍在后续接入。依据：`MarketLens_AI_PRD_v0.1.md` **正文 v0.2**；保留原文件，不以文件名判断版本。
 
 ## 1. 目标、边界与已确认默认值
 
@@ -232,6 +232,8 @@ F01已实现：类型来源为 `contracts/models.py`；可执行Schema以 `docs/
 AnalysisReport 包含 `schema_version/run_id/status/request/plan/statistics/selection/insights/charts/warnings/metrics`。insights 使用已校验的 AnalystOutput 加程序计算的 ID 和证据数；charts 使用 ChartSpec 加服务端数据绑定。statistics 保留 raw/valid/rejected/annotated/unknown/spam/selected 等计数与各分布。证据正文经 ReviewStore 按 ID 读取，JSON 导出默认仅包含引用与来源，可由用户明确选择附带正文；不包含 author 和密钥。
 
 ## 5. GLiNER2 调用方式与路由
+
+F04已实现GLiNER2 2.0.0适配器；固定revision、实际编码容量、真实smoke与中文开发对比见 `GLINER_DEVELOPMENT_CHECK.md`。原锁1.3.2不支持字符切分，已升级；未切换架构。适配器尚未接入demo图，后续F05/F06完成统计和路由。
 
 MVP 固定采用 GLiNER2 span 多语言模型 `fastino/gliner2-multi-v1`，不自动切换 GLiNER2.5；首次安装记录包版本、模型 revision、schema_version 和推理设备。当前官方提供 `gliner2[local]` 本地推理依赖，并保留 `GLiNER2.from_pretrained` span loader。[官方安装/模型说明](https://github.com/fastino-ai/GLiNER2)、[多语言模型卡](https://huggingface.co/fastino/gliner2-multi-v1)。多语言命名不构成中文效果保证，F04必须先跑中文样本再确认可用性。
 

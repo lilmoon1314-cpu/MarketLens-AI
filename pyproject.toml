@@ -16,7 +16,7 @@ marketlens = "marketlens.cli:main"
 [project.optional-dependencies]
 workflow = ["langgraph>=1.0,<2", "langgraph-checkpoint-sqlite>=3,<4"]
 llm = ["langchain-openai>=1.0,<2"]
-nlp = ["gliner2[local]>=1.2,<2"]
+nlp = ["gliner2[local]>=2.0,<3"]
 ui = ["streamlit>=1.40,<2", "altair>=5,<7"]
 collector = ["playwright>=1.50,<2"]
 

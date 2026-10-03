@@ -3,12 +3,22 @@
 ## 当前状态
 
 - 日期：2026-10-03。
-- 阶段：F00开发环境与项目骨架、F01契约、F02导入、F03离线工作流完成；下一项F04语义适配器。
+- 阶段：F00开发环境与项目骨架、F01契约、F02导入、F03离线工作流完成；F04语义适配器完成；下一项F05聚合统计。
 - PRD基线：`MarketLens_AI_PRD_v0.1.md`正文v0.2。
 - 本地基线：Python3.12、uv锁文件、src布局、pytest/Ruff、基础CI；Git main已初始化。
 - 远端目标：`https://github.com/lilmoon1314-cpu/MarketLens-AI.git`。
 - 远端核实：GitHub连接器确认空仓库、默认main、具有push权限；扩展网络Git只读连接成功。
-- 推送状态：F00已发布，交付记录提交fbdd8863f51bcd344f73d753613439dc8ed66e9d；F01已发布8480f77，Windows/Ubuntu CI通过；F02已发布b802c27，CI 37092971430成功；F03本提交包含该任务，发布pending。
+- 推送状态：F00已发布，交付记录提交fbdd8863f51bcd344f73d753613439dc8ed66e9d；F01已发布8480f77，Windows/Ubuntu CI通过；F02已发布b802c27，CI 37092971430成功；F03已发布8ba1671，CI 37093433646成功；F04本提交包含该任务，发布pending。
+
+## F04 — GLiNER2语义适配器
+
+- 日期：2026-10-03；状态：实现及本地验证完成，提交时发布pending。
+- 交付：延迟加载/进程复用CPU span模型、固定revision、三任务组合分类、严格分数转换、unknown/other、原文保留与实际编码截断、减半batch重试一次、失败unknown/processed=false；不转LLM。
+- 兼容：原1.3.2缺失set_word_splitter；按设计升级正式2.0.0，并锁定其兼容transformers4.57.6/tokenizers0.22.2/hub0.36.2；去除不再需要的依赖，保留无关CUDA锁段。
+- 验证：离线pytest 110 passed、1 model_smoke deselected；显式中文真实model_smoke 1 passed（11.13秒含加载，2项上游警告）；Ruff/lock/构建通过。权重下载至忽略缓存，约1.23GB。
+- 中文对比：四条脱敏人工开发样例、四组配置；char/中文value匹配3/4、sentiment1/4。选择路由初值但不宣称准确率达标；广告误判与负面情绪风险登记 `GLINER_DEVELOPMENT_CHECK.md`，留F14/F15独立评估。
+- 边界：独立适配器已完成，demo仍明确fake；F05/F06接入统计/候选预算后再组合真实语义。没有前端，截图不适用。
+- 后续：发布验证后自动推进F05。
 
 ## F03 — LangGraph离线闭环
 

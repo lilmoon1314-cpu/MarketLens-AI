@@ -2,7 +2,7 @@
 
 中文优先的商品用户反馈分析项目，计划使用 LangGraph、GLiNER2、多阶段 LLM 分析与 Streamlit 展示淘宝商品评论中的问题和需求。
 
-目前已实现 **F00：开发环境与项目骨架**、**F01：数据与 Agent 契约**、**F02：本地评论导入**。**F03：LangGraph离线闭环**也已完成，提供显式demo命令。淘宝采集、真实模型分析和Dashboard继续按计划实现。
+目前已实现 **F00：开发环境与项目骨架**、**F01：数据与 Agent 契约**、**F02：本地评论导入**。**F03：LangGraph离线闭环**和**F04：GLiNER2语义适配器**已完成，提供显式demo命令。淘宝采集、真实模型分析和Dashboard继续按计划实现。
 
 ## 本地开发
 
@@ -62,6 +62,17 @@ uv sync --locked --group dev --extra collector
 ```
 
 需要多组时在同一条命令中重复 `--extra`；uv 会按本次指定的组同步环境。GLiNER2 权重由后续模型功能显式加载。未来淘宝采集功能采用 Playwright；其浏览器安装与登录步骤在 F13 实现时说明，本轮不启动浏览器或采集评论。
+
+## 本地语义适配器
+
+```powershell
+uv sync --locked --group dev --extra workflow --extra nlp
+uv run --locked --extra workflow --extra nlp pytest tests/integration/test_gliner_smoke.py -m model_smoke -q
+```
+
+`SemanticAnalyzer().analyze(reviews)` 延迟加载CPU模型，进程内复用；首次下载约1.23GB权重到`.local/huggingface/hub`。模型ID与revision固定，使用GLiNER2 2.0.0 span架构。`GLiNERConfig`支持batch_size、char/whitespace切分、zh/en标签描述和缓存目录。普通测试通过注入backend，不下载模型。
+
+返回逐评论`SemanticReview`，包括实际分数、processed/truncated。缺失分数保留null；sentiment低于0.50记unknown，主题低于0.40剔除、无命中记other且不伪造其分数。长文本按实际Schema编码容量截断推理视图；批次失败减半重试一次。模型加载失败向调用方报错，不自动切模型或调用LLM。适配器尚未接入demo图，正式统计/路由在F05/F06实现。真实smoke与四组开发对比见[验证记录](docs/GLINER_DEVELOPMENT_CHECK.md)，广告和负面情绪分类存在已记录质量风险。
 
 ## 配置
 

@@ -3,12 +3,21 @@
 ## 当前状态
 
 - 日期：2026-10-03。
-- 阶段：F00开发环境与项目骨架、F01契约、F02导入、F03离线工作流完成；F04语义适配器完成；下一项F05聚合统计。
+- 阶段：F00开发环境与项目骨架、F01契约、F02导入、F03离线工作流完成；F04语义适配器完成；F05聚合统计完成；下一项F06预算路由。
 - PRD基线：`MarketLens_AI_PRD_v0.1.md`正文v0.2。
 - 本地基线：Python3.12、uv锁文件、src布局、pytest/Ruff、基础CI；Git main已初始化。
 - 远端目标：`https://github.com/lilmoon1314-cpu/MarketLens-AI.git`。
 - 远端核实：GitHub连接器确认空仓库、默认main、具有push权限；扩展网络Git只读连接成功。
-- 推送状态：F00已发布，交付记录提交fbdd8863f51bcd344f73d753613439dc8ed66e9d；F01已发布8480f77，Windows/Ubuntu CI通过；F02已发布b802c27，CI 37092971430成功；F03已发布8ba1671，CI 37093433646成功；F04本提交包含该任务，发布pending。
+- 推送状态：F00已发布，交付记录提交fbdd8863f51bcd344f73d753613439dc8ed66e9d；F01已发布8480f77，Windows/Ubuntu CI通过；F02已发布b802c27，CI 37092971430成功；F03已发布8ba1671，CI 37093433646成功；F04已发布17bc94a；F05本提交包含该任务，发布pending。
+
+## F05 — 聚合统计
+
+- 日期：2026-10-03；状态：实现及本地验证完成，提交时发布pending。
+- 交付：Statistics强类型与聚合工具；raw/valid/rejected、processed/unknown/spam/truncated、low_sample、三分布及明确分母。共享Schema重新生成，Agent接口保持。
+- 规则：缺失/失败标注计unknown；spam只从产品情绪/主题排除，value和预算valid分母保留；多标签topic可超过分母。拒绝重复/外来ID与不一致raw计数，输出与输入排列无关。
+- 验证：离线pytest 119 passed、1真实模型检查默认排除；9项新增覆盖手算混合fixture、全spam、零样本、20条边界、伪失败标签、输入计数/ID错误；Schema字节/引用回归、Ruff/打包通过。
+- 边界：仅确定性统计工具，不将抽样证据外推为发生率；图接入随F06，不改变demo含义。无前端截图。
+- 后续：本功能发布后自动推进F06。
 
 ## F04 — GLiNER2语义适配器
 

@@ -17,6 +17,7 @@ from .models import (
     VisualizationOutput,
 )
 from .state import AnalysisState
+from .statistics import Statistics
 
 __all__ = [
     "AnalysisRequest",
@@ -32,6 +33,7 @@ __all__ = [
     "PlannerOutput",
     "Review",
     "SemanticReview",
+    "Statistics",
     "VisualizationInput",
     "VisualizationOutput",
 ]

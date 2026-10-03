@@ -613,6 +613,127 @@
       "title": "SemanticReview",
       "type": "object"
     },
+    "Statistics": {
+      "additionalProperties": false,
+      "properties": {
+        "raw_count": {
+          "minimum": 0,
+          "title": "Raw Count",
+          "type": "integer"
+        },
+        "valid_count": {
+          "minimum": 0,
+          "title": "Valid Count",
+          "type": "integer"
+        },
+        "rejected_counts": {
+          "additionalProperties": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "title": "Rejected Counts",
+          "type": "object"
+        },
+        "annotated_count": {
+          "minimum": 0,
+          "title": "Annotated Count",
+          "type": "integer"
+        },
+        "unprocessed_count": {
+          "minimum": 0,
+          "title": "Unprocessed Count",
+          "type": "integer"
+        },
+        "unknown_count": {
+          "minimum": 0,
+          "title": "Unknown Count",
+          "type": "integer"
+        },
+        "spam_count": {
+          "minimum": 0,
+          "title": "Spam Count",
+          "type": "integer"
+        },
+        "truncated_count": {
+          "minimum": 0,
+          "title": "Truncated Count",
+          "type": "integer"
+        },
+        "low_sample": {
+          "title": "Low Sample",
+          "type": "boolean"
+        },
+        "product_denominator": {
+          "minimum": 0,
+          "title": "Product Denominator",
+          "type": "integer"
+        },
+        "value_denominator": {
+          "minimum": 0,
+          "title": "Value Denominator",
+          "type": "integer"
+        },
+        "sentiment_distribution": {
+          "additionalProperties": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "propertyNames": {
+            "enum": [
+              "positive",
+              "negative",
+              "neutral",
+              "mixed",
+              "unknown"
+            ]
+          },
+          "title": "Sentiment Distribution",
+          "type": "object"
+        },
+        "topic_distribution": {
+          "additionalProperties": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "title": "Topic Distribution",
+          "type": "object"
+        },
+        "feedback_value_distribution": {
+          "additionalProperties": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "propertyNames": {
+            "enum": [
+              "actionable",
+              "non_actionable",
+              "spam",
+              "unknown"
+            ]
+          },
+          "title": "Feedback Value Distribution",
+          "type": "object"
+        }
+      },
+      "required": [
+        "raw_count",
+        "valid_count",
+        "rejected_counts",
+        "annotated_count",
+        "unprocessed_count",
+        "unknown_count",
+        "spam_count",
+        "truncated_count",
+        "low_sample",
+        "product_denominator",
+        "value_denominator",
+        "sentiment_distribution",
+        "topic_distribution",
+        "feedback_value_distribution"
+      ],
+      "title": "Statistics",
+      "type": "object"
+    },
     "VisualizationInput": {
       "additionalProperties": false,
       "properties": {

@@ -17,6 +17,7 @@ from .models import (
     VisualizationInput,
     VisualizationOutput,
 )
+from .statistics import Statistics
 
 AGENT_MODELS = (
     PlannerInput,
@@ -34,7 +35,7 @@ def schema_documents() -> dict[str, dict]:
     _, bundle = models_json_schema(
         [
             (model, "validation")
-            for model in (*AGENT_MODELS, AnalysisRequest, Review, SemanticReview)
+            for model in (*AGENT_MODELS, AnalysisRequest, Review, SemanticReview, Statistics)
         ],
     )
     bundle = {"$schema": SCHEMA_URI, "$id": "urn:marketlens:agent-contracts:1.0", **bundle}

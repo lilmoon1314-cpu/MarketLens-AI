@@ -72,7 +72,11 @@ uv run --locked --extra workflow --extra nlp pytest tests/integration/test_gline
 
 `SemanticAnalyzer().analyze(reviews)` 延迟加载CPU模型，进程内复用；首次下载约1.23GB权重到`.local/huggingface/hub`。模型ID与revision固定，使用GLiNER2 2.0.0 span架构。`GLiNERConfig`支持batch_size、char/whitespace切分、zh/en标签描述和缓存目录。普通测试通过注入backend，不下载模型。
 
-返回逐评论`SemanticReview`，包括实际分数、processed/truncated。缺失分数保留null；sentiment低于0.50记unknown，主题低于0.40剔除、无命中记other且不伪造其分数。长文本按实际Schema编码容量截断推理视图；批次失败减半重试一次。模型加载失败向调用方报错，不自动切模型或调用LLM。适配器尚未接入demo图，正式统计/路由在F05/F06实现。真实smoke与四组开发对比见[验证记录](docs/GLINER_DEVELOPMENT_CHECK.md)，广告和负面情绪分类存在已记录质量风险。
+返回逐评论`SemanticReview`，包括实际分数、processed/truncated。缺失分数保留null；sentiment低于0.50记unknown，主题低于0.40剔除、无命中记other且不伪造其分数。长文本按实际Schema编码容量截断推理视图；批次失败减半重试一次。模型加载失败向调用方报错，不自动切模型或调用LLM。适配器尚未接入demo图，统计工具已在F05实现，正式图接入与路由在F06实现。真实smoke与四组开发对比见[验证记录](docs/GLINER_DEVELOPMENT_CHECK.md)，广告和负面情绪分类存在已记录质量风险。
+
+## 聚合统计
+
+`aggregate_statistics(reviews, annotations, raw_count, rejected_counts)` 返回严格的 `Statistics` 契约。ID必须唯一且标注只属于当前评论；raw必须等于valid加拒绝数。缺失或失败标注进入unknown，不能归为neutral。spam保留在value分布和valid分母，情绪/主题使用排除spam的product_denominator；多主题评论可贡献多个计数，topic总数可大于分母。有效样本少于20条标记low_sample。计数由程序生成，模型不输出总体频次。此工具尚未接入demo图。
 
 ## 配置
 

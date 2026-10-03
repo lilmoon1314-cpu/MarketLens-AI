@@ -210,8 +210,11 @@ class ChartSpec(Contract):
 
     @model_validator(mode="after")
     def validate_topic_chart(self) -> Self:
-        if self.dataset == "topic_distribution" and self.chart != "bar":
-            raise ValueError("multi-label topic distribution requires a bar chart")
+        if (
+            self.dataset in {"topic_distribution", "insight_evidence_counts"}
+            and self.chart != "bar"
+        ):
+            raise ValueError("overlapping counts require a bar chart")
         return self
 
 

@@ -1,4 +1,4 @@
-"""Explicit demo command; no default real model execution."""
+"""Explicit demo or real command; no silent model execution."""
 
 import argparse
 import json
@@ -7,6 +7,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
+from marketlens.config import ConfigurationError
 from marketlens.contracts import AnalysisRequest
 
 
@@ -17,7 +18,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--product", required=True)
     parser.add_argument("--goal", required=True)
     parser.add_argument("--max-reviews", type=int, default=1000)
-    parser.add_argument("--demo", action="store_true", required=True, help="明确使用模拟Agent")
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--demo", action="store_true", help="明确使用模拟Agent")
+    mode.add_argument(
+        "--real", action="store_true", help="使用本地GLiNER2和已配置LLM，会产生API用量"
+    )
     args = parser.parse_args(argv)
     try:
         from marketlens.workflow.demo import DemoAgents
@@ -32,14 +37,19 @@ def main(argv: list[str] | None = None) -> int:
             max_reviews=args.max_reviews,
             report_language="zh-CN",
         )
-        report = AnalysisService({"cli-input": args.input}, DemoAgents()).run(request)
-    except ImportError:
-        print(
-            "请先安装workflow依赖：uv sync --locked --extra workflow --group dev", file=sys.stderr
+        datasets = {"cli-input": args.input}
+        service = (
+            AnalysisService.real(datasets) if args.real else AnalysisService(datasets, DemoAgents())
         )
+        report = service.run(request)
+    except ImportError:
+        print("请安装对应依赖；真实模式需workflow、llm、nlp extras。", file=sys.stderr)
         return 2
     except ValidationError:
         print("分析请求无效，请检查参数长度和评论上限。", file=sys.stderr)
+        return 2
+    except ConfigurationError:
+        print("LLM配置无效，请检查忽略的.env或环境变量。", file=sys.stderr)
         return 2
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 1 if report["status"] == "failed" else 0

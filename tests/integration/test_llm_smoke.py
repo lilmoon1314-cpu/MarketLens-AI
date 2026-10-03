@@ -1,5 +1,6 @@
 """Explicit minimal real provider request using configured credentials."""
 
+import json
 import os
 from pathlib import Path
 
@@ -89,3 +90,61 @@ def test_live_review_analyst():
         set(item["evidence_ids"]) <= {r.review_id for r in reviews} for item in result.insights
     )
     assert all(item["evidence_count"] == len(set(item["evidence_ids"])) for item in result.insights)
+
+
+@pytest.mark.live_api
+def test_live_visualization_agent():
+    from marketlens.agents.visualization import VisualizationAgent
+    from marketlens.contracts import MetricDescriptor, VisualizationInput
+
+    llm = StructuredLLM(load_llm_config(Path(os.environ.get("MARKETLENS_ENV_FILE", ".env"))))
+    result = VisualizationAgent(llm).configure(
+        VisualizationInput(
+            product="示例",
+            report_language="zh-CN",
+            insight_titles=["电池续航短"],
+            available_metrics=[
+                MetricDescriptor(
+                    dataset="topic_distribution", label_field="label", value_field="count"
+                )
+            ],
+        )
+    )
+    assert result.warnings == []
+    assert result.output.charts[0].dataset == "topic_distribution"
+    assert result.output.charts[0].chart == "bar"
+
+
+@pytest.mark.live_api
+@pytest.mark.model_smoke
+def test_real_local_pipeline(tmp_path):
+    from marketlens.contracts import AnalysisRequest
+    from marketlens.workflow.service import AnalysisService
+
+    path = tmp_path / "reviews.jsonl"
+    path.write_text(
+        "".join(
+            json.dumps({"text": f"包装完整，物流很快，操作也很方便。样例{i}"}) + "\n"
+            for i in range(12)
+        ),
+        encoding="utf-8",
+    )
+    request = AnalysisRequest(
+        product="开发验证样例商品",
+        goal="了解操作与包装反馈",
+        sources=["local"],
+        dataset_id="sample",
+        product_urls=[],
+        max_reviews=1000,
+        report_language="zh-CN",
+    )
+    report = AnalysisService.real({"sample": path}).run(request)
+    assert report["mode"] == "real"
+    assert report["status"] in {"complete", "partial"}
+    assert report["statistics"]["annotated_count"] == 12
+    assert len(report["selected_ids"]) * 10 < report["review_count"] * 3
+    assert report["charts"]
+    assert report["metrics"]["llm"]["charged_tokens"] > 0
+    assert all(
+        set(item["evidence_ids"]) <= set(report["selected_ids"]) for item in report["insights"]
+    )

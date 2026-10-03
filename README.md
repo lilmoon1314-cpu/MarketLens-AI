@@ -2,7 +2,7 @@
 
 中文优先的商品用户反馈分析项目，计划使用 LangGraph、GLiNER2、多阶段 LLM 分析与 Streamlit 展示淘宝商品评论中的问题和需求。
 
-目前已实现 **F00：开发环境与项目骨架**、**F01：数据与 Agent 契约**、**F02：本地评论导入**。**F03：LangGraph离线闭环**和**F04：GLiNER2语义适配器**已完成，提供显式demo命令。淘宝采集、真实模型分析和Dashboard继续按计划实现。
+目前已实现 **F00：开发环境与项目骨架**、**F01：数据与 Agent 契约**、**F02：本地评论导入**。**F03：LangGraph离线闭环**和**F04：GLiNER2语义适配器**已完成，提供显式demo命令。F05—F10的统计、预算与三个真实Agent均已实现；淘宝采集、持久化和Dashboard继续按计划实现。
 
 ## 本地开发
 
@@ -106,7 +106,7 @@ uv run --locked --extra workflow --extra llm pytest tests/integration/test_llm_s
 
 `PlannerAgent(llm).plan(PlannerInput)`返回计划与warnings；只允许请求来源和可用来源的交集。网络/Schema/越权失败使用产品名关键词和四个默认维度，记录planner_fallback；空交集直接失败，不虚构数据来源。提示词版本在`marketlens.prompts.planner`。
 
-可通过`AnalysisService(..., planner=PlannerAgent(llm))`接入真实Planner；同一运行共享StructuredLLM账本，路由扣除Planner实测/预留消耗，遵守provider context/input/output限制。每个真实运行创建新的LLM/Planner实例。CLI仍仅demo，其余Agent尚未完成真实接入；混合流程仍标demo，Planner模式及usage单独记录。
+可通过`AnalysisService(..., planner=PlannerAgent(llm))`接入真实Planner；同一运行共享StructuredLLM账本，路由扣除Planner实测/预留消耗，遵守provider context/input/output限制。每个真实运行创建新的LLM/Planner实例。可逐个注入组件做混合验证（仍标demo）；完整真实模式由AnalysisService.real创建，三个Agent共享账本。
 
 ## Review Analyst与证据
 
@@ -114,7 +114,18 @@ uv run --locked --extra workflow --extra llm pytest tests/integration/test_llm_s
 
 每批只允许该批证据，合并只允许先前有效洞察的证据。含非法引用的洞察整体删除，摘要由确定性模板重建，避免残留无证据结论。合并失败用按kind/规范化title去重的结果；证据集合取并集，程序生成稳定insight_id与去重evidence_count。不同洞察可能共享证据，这些计数不能相加当作独立用户数。
 
-`AnalysisService(..., planner=PlannerAgent(llm), analyst=AnalystAgent(llm))`要求共享同一运行的LLM实例；报告包含程序洞察计数、实际尝试送入的analyst_sent_ids、warnings和累计usage。部分失败标partial。提示词位于`prompts/analyst.py`；抽样洞察不代表总体发生率。CLI/Visualization当前仍demo，下一项F10完成真实图表配置与完整模式。
+`AnalysisService(..., planner=PlannerAgent(llm), analyst=AnalystAgent(llm))`要求共享同一运行的LLM实例；报告包含程序洞察计数、实际尝试送入的analyst_sent_ids、warnings和累计usage。部分失败标partial。提示词位于`prompts/analyst.py`；抽样洞察不代表总体发生率。真实Visualization与完整CLI模式已在F10实现。
+
+## 图表配置与真实模式
+
+`VisualizationAgent.configure()`只接收产品、语言、已有数据集描述与洞察标题，不接收评论正文。选择已存在且不重复的数据集，字段仅label/count；topic与洞察证据存在重叠，只允许bar，情绪/value可用donut。模型失败/非法配置回退为已有数据的默认柱状图；零数据不调用LLM。图表数字与中文标签均由服务端生成绑定，报告charts包含配置和data，不能执行模型代码。
+
+```powershell
+uv sync --locked --group dev --extra workflow --extra llm --extra nlp
+uv run --locked --extra workflow --extra llm --extra nlp marketlens analyze --real --input reviews.jsonl --product "示例商品" --goal "了解反馈"
+```
+
+必须显式选择--real或--demo。真实模式读取忽略.env，使用CPU模型和三个真实Agent；会产生API用量，首次下载模型。数据不足/部分失败仍生成可用统计图，报告标partial；完成状态不代表准确率验收。stdout为JSON，上游模型加载输出不污染它。每次真实运行创建新服务，持久化在F11、页面图表渲染在F12实现。
 
 ## 测试约定
 

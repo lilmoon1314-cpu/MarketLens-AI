@@ -1,8 +1,10 @@
 """GLiNER2 span inference; no LLM fallback and no invented confidence scores."""
 
 import math
+from contextlib import redirect_stdout
 from dataclasses import dataclass
 from functools import lru_cache
+from io import StringIO
 from pathlib import Path
 from typing import Protocol, get_args
 
@@ -64,7 +66,8 @@ class LocalBackend:
             cache_dir=config.cache_dir,
             allow_patterns=["*.json", "*.model", "model.safetensors", "encoder_config/config.json"],
         )
-        self.model = GLiNER2.from_pretrained(snapshot, map_location="cpu")
+        with redirect_stdout(StringIO()):
+            self.model = GLiNER2.from_pretrained(snapshot, map_location="cpu")
         self.model.set_word_splitter(config.splitter)
         self.model.eval()
         self.schema = build_schema(self.model, config.label_language)

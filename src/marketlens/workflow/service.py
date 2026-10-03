@@ -12,12 +12,14 @@ from langgraph.runtime import Runtime
 
 from marketlens.agents.analyst import AnalystAgent
 from marketlens.agents.planner import PlannerAgent
+from marketlens.agents.visualization import VisualizationAgent
 from marketlens.contracts import (
     AnalysisRequest,
     AnalysisState,
     AnalystInput,
     AnalystOutput,
     AnnotatedReview,
+    MetricDescriptor,
     PlannerInput,
     PlannerOutput,
     Review,
@@ -25,6 +27,8 @@ from marketlens.contracts import (
     VisualizationInput,
     VisualizationOutput,
 )
+from marketlens.contracts.statistics import Statistics
+from marketlens.tools.charts import bind_charts, chart_datasets, default_charts, validate_charts
 from marketlens.tools.collection import load_local_reviews
 from marketlens.tools.evidence import insight_records
 from marketlens.tools.routing import RoutingBudget, select_reviews, selected_evidence
@@ -49,9 +53,11 @@ class Context:
     budget: RoutingBudget
     planner: PlannerAgent | None
     analyst: AnalystAgent | None
+    visualization: VisualizationAgent | None
+    mode: str
 
 
-def _initial(request: AnalysisRequest) -> AnalysisState:
+def _initial(request: AnalysisRequest, mode: str = "demo") -> AnalysisState:
     return AnalysisState(
         schema_version="1.0",
         run_id=str(uuid4()),
@@ -69,8 +75,10 @@ def _initial(request: AnalysisRequest) -> AnalysisState:
         analyst_result=None,
         visualization=None,
         report=None,
-        metrics={"mode": "demo"},
-        warnings=[{"code": "demo_mode", "stage": "start", "message": "模拟运行，非真实AI分析"}],
+        metrics={"mode": mode},
+        warnings=[{"code": "demo_mode", "stage": "start", "message": "模拟运行，非真实AI分析"}]
+        if mode == "demo"
+        else [],
         errors=[],
     )
 
@@ -170,8 +178,14 @@ def _aggregate(state: AnalysisState, runtime: Runtime[Context]) -> dict:
         reviews, annotations, state["metrics"]["raw_count"], state["rejected_counts"]
     )
     budget = runtime.context.budget
-    if runtime.context.planner is not None or runtime.context.analyst is not None:
-        llm = (runtime.context.planner or runtime.context.analyst).llm
+    if (
+        runtime.context.planner is not None
+        or runtime.context.analyst is not None
+        or runtime.context.visualization is not None
+    ):
+        llm = (
+            runtime.context.planner or runtime.context.analyst or runtime.context.visualization
+        ).llm
         budget = replace(
             budget,
             remaining_run_tokens=min(budget.remaining_run_tokens, llm.remaining_tokens),
@@ -189,16 +203,47 @@ def _aggregate(state: AnalysisState, runtime: Runtime[Context]) -> dict:
 
 def _visualization(state: AnalysisState, runtime: Runtime[Context]) -> dict:
     request = AnalysisRequest.model_validate(state["request"])
-    output = runtime.context.agents.visualization(
-        VisualizationInput(
-            product=request.product,
-            report_language=request.report_language,
-            available_metrics=[],
-            insight_titles=[i["title"] for i in state["analyst_result"]["insights"]],
-        )
+    datasets = _datasets(state)
+    data = VisualizationInput(
+        product=request.product,
+        report_language=request.report_language,
+        available_metrics=[
+            MetricDescriptor(dataset=name, label_field="label", value_field="count")
+            for name in datasets
+        ],
+        insight_titles=[item["label"] for item in datasets.get("insight_evidence_counts", [])],
     )
+    if not datasets or state["errors"] or not state["analyst_result"]:
+        output = default_charts(datasets)
+        return {"visualization": output.model_dump(mode="json") if output else None}
+    if runtime.context.visualization is not None:
+        agent = runtime.context.visualization
+        result = agent.configure(data)
+        return {
+            "visualization": result.output.model_dump(mode="json") if result.output else None,
+            "warnings": [*state["warnings"], *result.warnings],
+            "status": "partial" if result.warnings else state["status"],
+            "metrics": {
+                **state["metrics"],
+                "llm": agent.llm.metrics(),
+                "visualization_mode": "real",
+            },
+        }
+    output = runtime.context.agents.visualization(data)
     output = VisualizationOutput.model_validate(output.model_dump())
+    validate_charts(output, set(datasets))
     return {"visualization": output.model_dump(mode="json")}
+
+
+def _datasets(state: AnalysisState) -> dict:
+    if not state["statistics"]:
+        return {}
+    insights = (
+        insight_records(AnalystOutput.model_validate(state["analyst_result"]).insights)
+        if state["analyst_result"]
+        else []
+    )
+    return chart_datasets(Statistics.model_validate(state["statistics"]), insights)
 
 
 def _guard(name, node):
@@ -240,7 +285,10 @@ def _finalize(state: AnalysisState) -> dict:
     report = {
         "run_id": state["run_id"],
         "status": status,
-        "mode": "demo",
+        "mode": state["metrics"]["mode"],
+        "schema_version": state["schema_version"],
+        "request": state["request"],
+        "plan": state["plan"],
         "review_count": len(state["reviews"]),
         "raw_count": state["metrics"].get("raw_count", 0),
         "rejected_counts": state["rejected_counts"],
@@ -253,6 +301,12 @@ def _finalize(state: AnalysisState) -> dict:
         if state["analyst_result"]
         else [],
         "visualization": state["visualization"],
+        "charts": bind_charts(
+            VisualizationOutput.model_validate(state["visualization"])
+            if state["visualization"]
+            else None,
+            _datasets(state),
+        ),
         "warnings": state["warnings"],
         "errors": state["errors"],
     }
@@ -278,16 +332,17 @@ def build_graph():
     )
     graph.add_edge("semantic", "aggregate")
     graph.add_conditional_edges(
-        "aggregate", lambda s: "analyst" if not s["errors"] and s["selected_ids"] else "finalize"
+        "aggregate",
+        lambda s: "analyst" if not s["errors"] and s["selected_ids"] else "visualization",
     )
-    graph.add_conditional_edges("analyst", lambda s: "finalize" if s["errors"] else "visualization")
+    graph.add_edge("analyst", "visualization")
     graph.add_edge("visualization", "finalize")
     graph.add_edge("finalize", END)
     return graph.compile()
 
 
 class AnalysisService:
-    """Explicit demo service; shared graph for run and progress streaming."""
+    """Shared graph for explicit demo, mixed component tests, and real analysis."""
 
     def __init__(
         self,
@@ -297,11 +352,20 @@ class AnalysisService:
         budget: RoutingBudget | None = None,
         planner: PlannerAgent | None = None,
         analyst: AnalystAgent | None = None,
+        visualization: VisualizationAgent | None = None,
+        mode: str = "demo",
     ):
         from .demo import DemoSemantic
 
-        if planner is not None and analyst is not None and planner.llm is not analyst.llm:
-            raise ValueError("Planner and Analyst must share one per-run LLM budget")
+        active = [agent for agent in (planner, analyst, visualization) if agent is not None]
+        if active and any(agent.llm is not active[0].llm for agent in active):
+            raise ValueError("Agents must share one per-run LLM budget")
+        if (
+            mode not in {"demo", "real"}
+            or mode == "real"
+            and (len(active) != 3 or semantic is None)
+        ):
+            raise ValueError("real mode requires all real components")
 
         self.context = Context(
             dict(datasets),
@@ -310,21 +374,47 @@ class AnalysisService:
             budget or RoutingBudget(),
             planner,
             analyst,
+            visualization,
+            mode,
         )
         self.graph = build_graph()
 
     def run(self, request: AnalysisRequest) -> dict:
-        return self.graph.invoke(_initial(request), context=self.context)["report"]
+        return self.graph.invoke(_initial(request, self.context.mode), context=self.context)[
+            "report"
+        ]
+
+    @classmethod
+    def real(cls, datasets: Mapping[str, Path]):
+        from gliner2 import GLiNER2  # noqa: F401 - verify local inference dependency
+
+        from marketlens.adapters.gliner import SemanticAnalyzer
+        from marketlens.adapters.llm import StructuredLLM
+        from marketlens.config import load_llm_config
+
+        from .demo import DemoAgents
+
+        llm = StructuredLLM(load_llm_config())
+        return cls(
+            datasets,
+            DemoAgents(),
+            SemanticAnalyzer(),
+            planner=PlannerAgent(llm),
+            analyst=AnalystAgent(llm),
+            visualization=VisualizationAgent(llm),
+            mode="real",
+        )
 
     def stream(self, request: AnalysisRequest) -> Iterator[dict]:
         for state in self.graph.stream(
-            _initial(request), context=self.context, stream_mode="values"
+            _initial(request, self.context.mode), context=self.context, stream_mode="values"
         ):
             event = {
                 "run_id": state["run_id"],
                 "stage": state["stage"],
                 "status": state["status"],
-                "message": "模拟运行：" + state["stage"],
+                "message": ("模拟运行：" if self.context.mode == "demo" else "分析进度：")
+                + state["stage"],
             }
             if state["report"] is not None:
                 event["report"] = state["report"]

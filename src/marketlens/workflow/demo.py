@@ -60,7 +60,7 @@ class DemoAgents:
                     {
                         "chart": "bar",
                         "title": "模拟证据数量",
-                        "dataset": "insight_evidence_counts",
+                        "dataset": data.available_metrics[0].dataset,
                         "x": "label",
                         "y": "count",
                     }

@@ -3,12 +3,23 @@
 ## 当前状态
 
 - 日期：2026-10-03。
-- 阶段：F00开发环境与项目骨架、F01契约、F02导入、F03离线工作流完成；F04语义适配器完成；F05聚合统计完成；F06预算路由完成；F07 LLM适配器完成；F08 Planner接入完成；F09 Analyst与证据完成；下一项F10 Visualization。
+- 阶段：F00开发环境与项目骨架、F01契约、F02导入、F03离线工作流完成；F04语义适配器完成；F05聚合统计完成；F06预算路由完成；F07 LLM适配器完成；F08 Planner接入完成；F09 Analyst与证据完成；F10 Visualization与真实本地闭环完成；下一项F11持久化。
 - PRD基线：`MarketLens_AI_PRD_v0.1.md`正文v0.2。
 - 本地基线：Python3.12、uv锁文件、src布局、pytest/Ruff、基础CI；Git main已初始化。
 - 远端目标：`https://github.com/lilmoon1314-cpu/MarketLens-AI.git`。
 - 远端核实：GitHub连接器确认空仓库、默认main、具有push权限；扩展网络Git只读连接成功。
-- 推送状态：F00已发布，交付记录提交fbdd8863f51bcd344f73d753613439dc8ed66e9d；F01已发布8480f77，Windows/Ubuntu CI通过；F02已发布b802c27，CI 37092971430成功；F03已发布8ba1671，CI 37093433646成功；F04已发布17bc94a；F05已发布3476a9d；F06已发布dca80d2；F07已发布0f3f33b，CI 37095966234成功；F08已发布13f389d，CI 37096431061成功；F09本提交包含该任务，发布pending。
+- 推送状态：F00已发布，交付记录提交fbdd8863f51bcd344f73d753613439dc8ed66e9d；F01已发布8480f77，Windows/Ubuntu CI通过；F02已发布b802c27，CI 37092971430成功；F03已发布8ba1671，CI 37093433646成功；F04已发布17bc94a；F05已发布3476a9d；F06已发布dca80d2；F07已发布0f3f33b，CI 37095966234成功；F08已发布13f389d，CI 37096431061成功；F09已发布4ae5bd9；F10本提交包含该任务，发布pending。
+
+## F10 — Visualization与真实本地闭环
+
+- 日期：2026-10-03；状态：实现及离线/真实闭环验证完成，提交时发布pending。
+- 交付：版本化图表提示词、字段/数据集白名单、去重配置、已有数据默认bar/零数据跳过、程序中文标签与绑定数据；topic与证据重叠计数禁止donut。运行时约束同步ChartSpec并重新导出检查Schema。
+- 图：统计partial也走确定性图表fallback；支持真实Visualization注入，三Agent共享账本；完整AnalysisService.real与显式--real CLI，不再把真实流程标demo。
+- 验证：离线pytest 192 passed、7外部检查排除；已有/缺失/重复数据集、overlap donut、零数据不调用、中文绑定数据均通过；Ruff/lock/打包通过。
+- 真实验证：Visualization与12条合成评论完整GLiNER2/三Agent smoke 2 passed（65.06秒含加载/API，2上游模型警告）；模式real、12条语义处理、严格预算、绑定图表、usage/证据通过。非真实用户数据，不能作为质量或1000条性能验收。
+- CLI验收：3条合成评论真实CLI stdout解析JSON成功，mode real/status partial/selected0/charts3；上游模型配置打印已隔离stdout，stderr警告未影响JSON。
+- 边界：本轮交付数据与配置，没有页面渲染，截图不适用；F12再做真实布局/视觉验收。已询问后续淘宝验收商品URL，同时继续独立工作。
+- 后续：发布后自动推进F11 SQLite报告、checkpoint与版本缓存。
 
 ## F09 — Review Analyst与证据
 
